@@ -1,4 +1,4 @@
-package com.github.utils;
+package com.github.shmilyjxs.utils;
 
 import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;

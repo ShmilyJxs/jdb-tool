@@ -1,4 +1,4 @@
-package com.github.dialects;
+package com.github.shmilyjxs.dialects;
 
 import java.util.Arrays;
 
