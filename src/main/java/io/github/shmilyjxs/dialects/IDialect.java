@@ -1,4 +1,4 @@
-package com.github.shmilyjxs.dialects;
+package io.github.shmilyjxs.dialects;
 
 import org.intellij.lang.annotations.Language;
 

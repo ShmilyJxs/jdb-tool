@@ -1,6 +1,6 @@
-package com.github.shmilyjxs.utils;
+package io.github.shmilyjxs.utils;
 
-import com.github.shmilyjxs.dialects.DBEnum;
+import io.github.shmilyjxs.dialects.DBEnum;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 

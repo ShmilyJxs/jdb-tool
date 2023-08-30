@@ -1,4 +1,4 @@
-package com.github.shmilyjxs.utils;
+package io.github.shmilyjxs.utils;
 
 import javafx.util.Pair;
 import org.apache.commons.lang3.StringUtils;
