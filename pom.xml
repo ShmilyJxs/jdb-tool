@@ -11,7 +11,7 @@
         <version>9</version>
     </parent>
 
-    <groupId>com.github</groupId>
+    <groupId>com.github.shmilyjxs</groupId>
     <artifactId>jdb-tool</artifactId>
     <version>1.0</version>
 
