@@ -24,11 +24,11 @@ public interface DaoContext {
 
     boolean exists(@Language("SQL") String sql, Object... args);
 
-    int insert(@Language("SQL") String sql, Object... args);
+    int nativeInsert(@Language("SQL") String sql, Object... args);
 
-    int update(@Language("SQL") String sql, Object... args);
+    int nativeUpdate(@Language("SQL") String sql, Object... args);
 
-    int delete(@Language("SQL") String sql, Object... args);
+    int nativeDelete(@Language("SQL") String sql, Object... args);
 
     <ID> int delete(String tableName, String pkColumn, ID pkValue);
 
@@ -42,7 +42,7 @@ public interface DaoContext {
 
     <T, ID> List<T> getBeans(String tableName, String pkColumn, Collection<ID> pkValues, Class<T> mappedClass);
 
-    <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args);
+    <T> Map<String, Object> selectPage(@Language("SQL") String sql, Class<T> mappedClass, long pageNum, long pageSize, Object... args);
 
     Map<String, Object> selectMap(@Language("SQL") String sql, Object... args);
 
@@ -81,14 +81,4 @@ public interface DaoContext {
     <T, ID> List<T> getBeans(Collection<ID> pkValues, Class<T> mappedClass);
 
     <T, ID> List<T> getBeans(Collection<ID> pkValues, Class<T> mappedClass, boolean javaToDb);
-
-    Map<String, Object> selectMap(@Language("SQL") String sql, boolean dbToJava, Object... args);
-
-    <ID> Map<String, Object> getMap(String tableName, String pkColumn, ID pkValue, boolean dbToJava);
-
-    List<Map<String, Object>> selectList(@Language("SQL") String sql, boolean dbToJava, Object... args);
-
-    <ID> List<Map<String, Object>> getList(String tableName, String pkColumn, Collection<ID> pkValues, boolean dbToJava);
-
-    Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, boolean dbToJava, Object... args);
 }

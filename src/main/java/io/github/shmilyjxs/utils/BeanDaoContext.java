@@ -2,7 +2,6 @@ package io.github.shmilyjxs.utils;
 
 import javafx.util.Pair;
 import org.apache.commons.lang3.StringUtils;
-import org.intellij.lang.annotations.Language;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import javax.persistence.Id;
@@ -84,7 +83,7 @@ public abstract class BeanDaoContext implements SqlDaoContext {
                         stringBuilder.append(pair.getKey().stream().collect(Collectors.joining(" , ", " ( ", " ) ")));
                         stringBuilder.append("VALUES");
                         stringBuilder.append(pair.getKey().stream().map(e -> "?").collect(Collectors.joining(" , ", " ( ", " ) ")));
-                        result = insert(stringBuilder.toString(), pair.getValue().toArray());
+                        result = nativeInsert(stringBuilder.toString(), pair.getValue().toArray());
                     }
                 }
             }
@@ -136,7 +135,7 @@ public abstract class BeanDaoContext implements SqlDaoContext {
                                 stringBuilder.append(pair.getKey().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" , ")));
                                 stringBuilder.append(" WHERE ");
                                 stringBuilder.append(pkPair.getKey().concat(" = ?"));
-                                result = update(stringBuilder.toString(), pair.getValue().toArray());
+                                result = nativeUpdate(stringBuilder.toString(), pair.getValue().toArray());
                             }
                         }
                     }
@@ -244,49 +243,6 @@ public abstract class BeanDaoContext implements SqlDaoContext {
                     result = getBeans(tableName, pkFiledMap.getValue(), pkValues, mappedClass);
                 }
             }
-        }
-        return result;
-    }
-
-    @Override
-    public Map<String, Object> selectMap(@Language("SQL") String sql, boolean dbToJava, Object... args) {
-        Map<String, Object> result = selectMap(sql, args);
-        if (dbToJava) {
-            result = BeanUtil.dbToJava(result);
-        }
-        return result;
-    }
-
-    @Override
-    public <ID> Map<String, Object> getMap(String tableName, String pkColumn, ID pkValue, boolean dbToJava) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + pkColumn + " = ?";
-        return selectMap(sql, dbToJava, new Object[]{pkValue});
-    }
-
-    @Override
-    public List<Map<String, Object>> selectList(@Language("SQL") String sql, boolean dbToJava, Object... args) {
-        List<Map<String, Object>> result = selectList(sql, args);
-        if (dbToJava) {
-            result = result.stream().map(BeanUtil::dbToJava).collect(Collectors.toList());
-        }
-        return result;
-    }
-
-    @Override
-    public <ID> List<Map<String, Object>> getList(String tableName, String pkColumn, Collection<ID> pkValues, boolean dbToJava) {
-        List<Map<String, Object>> result = getList(tableName, pkColumn, pkValues);
-        if (dbToJava) {
-            result = result.stream().map(BeanUtil::dbToJava).collect(Collectors.toList());
-        }
-        return result;
-    }
-
-    @Override
-    public Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, boolean dbToJava, Object... args) {
-        Map<String, Object> result = selectPage(sql, pageNum, pageSize, args);
-        if (dbToJava) {
-            List<Map<String, Object>> records = ((List<Map<String, Object>>) result.get("records")).stream().map(BeanUtil::dbToJava).collect(Collectors.toList());
-            result.put("records", records);
         }
         return result;
     }

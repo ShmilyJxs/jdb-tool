@@ -25,19 +25,19 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default int insert(@Language("SQL") String sql, Object... args) {
+    default int nativeInsert(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
 
     @Override
-    default int update(@Language("SQL") String sql, Object... args) {
+    default int nativeUpdate(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
 
     @Override
-    default int delete(@Language("SQL") String sql, Object... args) {
+    default int nativeDelete(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
@@ -45,7 +45,7 @@ public interface SqlDaoContext extends DaoContext {
     @Override
     default <ID> int delete(String tableName, String pkColumn, ID pkValue) {
         String sql = "DELETE FROM " + tableName + " WHERE " + pkColumn + " = ?";
-        return delete(sql, pkValue);
+        return nativeDelete(sql, pkValue);
     }
 
     @Override
@@ -89,7 +89,7 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
+    default <T> Map<String, Object> selectPage(@Language("SQL") String sql, Class<T> mappedClass, long pageNum, long pageSize, Object... args) {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
