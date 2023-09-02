@@ -42,7 +42,7 @@ public interface DaoContext {
 
     <T, ID> List<T> getBeans(String tableName, String pkColumn, Collection<ID> pkValues, Class<T> mappedClass);
 
-    <T> Map<String, Object> selectPage(@Language("SQL") String sql, Class<T> mappedClass, long pageNum, long pageSize, Object... args);
+    <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args);
 
     Map<String, Object> selectMap(@Language("SQL") String sql, Object... args);
 
@@ -54,31 +54,17 @@ public interface DaoContext {
 
     Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Object... args);
 
-    <T> int insert(T obj);
+    <T> int insert(T obj, boolean skipBlank);
 
-    <T> int insert(T obj, boolean skipBlank, boolean javaToDb);
-
-    <T> int update(T obj);
-
-    <T> int update(T obj, boolean skipBlank, boolean javaToDb);
+    <T> int update(T obj, boolean skipBlank);
 
     <T> int delete(T obj);
 
-    <T> int delete(T obj, boolean javaToDb);
-
     <T, ID> int delete(ID pkValue, Class<T> mappedClass);
-
-    <T, ID> int delete(ID pkValue, Class<T> mappedClass, boolean javaToDb);
 
     <T, ID> int batchDelete(Collection<ID> pkValues, Class<T> mappedClass);
 
-    <T, ID> int batchDelete(Collection<ID> pkValues, Class<T> mappedClass, boolean javaToDb);
-
     <T, ID> T getBean(ID pkValue, Class<T> mappedClass);
 
-    <T, ID> T getBean(ID pkValue, Class<T> mappedClass, boolean javaToDb);
-
     <T, ID> List<T> getBeans(Collection<ID> pkValues, Class<T> mappedClass);
-
-    <T, ID> List<T> getBeans(Collection<ID> pkValues, Class<T> mappedClass, boolean javaToDb);
 }

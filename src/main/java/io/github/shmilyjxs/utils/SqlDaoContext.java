@@ -89,7 +89,7 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <T> Map<String, Object> selectPage(@Language("SQL") String sql, Class<T> mappedClass, long pageNum, long pageSize, Object... args) {
+    default <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 

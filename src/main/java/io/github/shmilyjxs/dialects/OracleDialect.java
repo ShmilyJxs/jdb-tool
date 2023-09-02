@@ -11,4 +11,9 @@ public class OracleDialect implements IDialect {
         long offset = (pageNum - 1L) * limit;
         return "SELECT * FROM ( SELECT tmp.* , ROWNUM ROW_ID FROM ( " + sql + " ) tmp WHERE ROWNUM <= " + (offset + limit) + ") WHERE ROW_ID > " + offset;
     }
+
+    @Override
+    public String columnSql(String tableName) {
+        return "SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
+    }
 }

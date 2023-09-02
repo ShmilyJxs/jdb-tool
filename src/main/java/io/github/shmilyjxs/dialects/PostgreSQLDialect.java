@@ -17,4 +17,9 @@ public class PostgreSQLDialect implements IDialect {
         }
         return stringBuilder.toString();
     }
+
+    @Override
+    public String columnSql(String tableName) {
+        return "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "'";
+    }
 }

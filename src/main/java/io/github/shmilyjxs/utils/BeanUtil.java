@@ -82,7 +82,7 @@ public class BeanUtil {
         }).orElse(null);
     }
 
-    private static String dbToJava(String column) {
+    public static String dbToJava(String column) {
         return Optional.ofNullable(column)
                 .map(String::toLowerCase)
                 .map(e -> CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, e))
@@ -93,7 +93,7 @@ public class BeanUtil {
         return javaToDb(property, true);
     }
 
-    private static String javaToDb(String property, boolean toLowerCase) {
+    public static String javaToDb(String property, boolean toLowerCase) {
         return Optional.ofNullable(property)
                 .map(e -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, e))
                 .map(e -> toLowerCase ? e.toLowerCase() : e.toUpperCase())
