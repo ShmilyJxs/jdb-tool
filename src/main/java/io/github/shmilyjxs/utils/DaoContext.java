@@ -30,27 +30,31 @@ public interface DaoContext {
 
     int nativeDelete(@Language("SQL") String sql, Object... args);
 
-    <ID> int delete(String tableName, String pkColumn, ID pkValue);
+    <C> int delete(String tableName, String columnName, C columnValue);
 
-    <ID> int batchDelete(String tableName, String pkColumn, Collection<ID> pkValues);
+    <C> int batchDelete(String tableName, String columnName, Collection<C> columnValues);
 
     <T> T selectBean(@Language("SQL") String sql, Class<T> mappedClass, Object... args);
 
-    <T, ID> T getBean(String tableName, String pkColumn, ID pkValue, Class<T> mappedClass);
+    <T, C> T getBean(String tableName, String columnName, C columnValue, Class<T> mappedClass);
 
     <T> List<T> selectBeans(@Language("SQL") String sql, Class<T> mappedClass, Object... args);
 
-    <T, ID> List<T> getBeans(String tableName, String pkColumn, Collection<ID> pkValues, Class<T> mappedClass);
+    <T> List<T> getBeans(String tableName, Class<T> mappedClass);
+
+    <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass);
 
     <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args);
 
     Map<String, Object> selectMap(@Language("SQL") String sql, Object... args);
 
-    <ID> Map<String, Object> getMap(String tableName, String pkColumn, ID pkValue);
+    <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue);
 
     List<Map<String, Object>> selectList(@Language("SQL") String sql, Object... args);
 
-    <ID> List<Map<String, Object>> getList(String tableName, String pkColumn, Collection<ID> pkValues);
+    List<Map<String, Object>> getList(String tableName);
+
+    <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues);
 
     Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Object... args);
 
@@ -65,6 +69,8 @@ public interface DaoContext {
     <T, ID> int batchDelete(Collection<ID> pkValues, Class<T> mappedClass);
 
     <T, ID> T getBean(ID pkValue, Class<T> mappedClass);
+
+    <T> List<T> getBeans(Class<T> mappedClass);
 
     <T, ID> List<T> getBeans(Collection<ID> pkValues, Class<T> mappedClass);
 }

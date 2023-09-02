@@ -43,18 +43,18 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <ID> int delete(String tableName, String pkColumn, ID pkValue) {
-        String sql = "DELETE FROM " + tableName + " WHERE " + pkColumn + " = ?";
-        return nativeDelete(sql, pkValue);
+    default <C> int delete(String tableName, String columnName, C columnValue) {
+        String sql = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
+        return nativeDelete(sql, columnValue);
     }
 
     @Override
-    default <ID> int batchDelete(String tableName, String pkColumn, Collection<ID> pkValues) {
+    default <C> int batchDelete(String tableName, String columnName, Collection<C> columnValues) {
         int result = 0;
-        if (Objects.nonNull(pkValues) && pkValues.size() > 0) {
-            String sql = "DELETE FROM " + tableName + " WHERE " + pkColumn + " IN (:pkValues)";
+        if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
+            String sql = "DELETE FROM " + tableName + " WHERE " + columnName + " IN (:columnValues)";
             logger.info(sql);
-            result = getNamedJdbcTemplate().update(sql, Collections.singletonMap("pkValues", pkValues));
+            result = getNamedJdbcTemplate().update(sql, Collections.singletonMap("columnValues", columnValues));
         }
         return result;
     }
@@ -66,9 +66,9 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <T, ID> T getBean(String tableName, String pkColumn, ID pkValue, Class<T> mappedClass) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + pkColumn + " = ?";
-        return selectBean(sql, mappedClass, pkValue);
+    default <T, C> T getBean(String tableName, String columnName, C columnValue, Class<T> mappedClass) {
+        String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " = ?";
+        return selectBean(sql, mappedClass, columnValue);
     }
 
     @Override
@@ -78,12 +78,18 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <T, ID> List<T> getBeans(String tableName, String pkColumn, Collection<ID> pkValues, Class<T> mappedClass) {
+    default <T> List<T> getBeans(String tableName, Class<T> mappedClass) {
+        String sql = "SELECT * FROM " + tableName;
+        return selectBeans(sql, mappedClass);
+    }
+
+    @Override
+    default <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass) {
         List<T> result = new ArrayList<>();
-        if (Objects.nonNull(pkValues) && pkValues.size() > 0) {
-            String sql = "SELECT * FROM " + tableName + " WHERE " + pkColumn + " IN (:pkValues)";
+        if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
+            String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " IN (:columnValues)";
             logger.info(sql);
-            result = getNamedJdbcTemplate().query(sql, Collections.singletonMap("pkValues", pkValues), new BeanPropertyRowMapper<>(mappedClass));
+            result = getNamedJdbcTemplate().query(sql, Collections.singletonMap("columnValues", columnValues), new BeanPropertyRowMapper<>(mappedClass));
         }
         return result;
     }
@@ -125,9 +131,9 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <ID> Map<String, Object> getMap(String tableName, String pkColumn, ID pkValue) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + pkColumn + " = ?";
-        return selectMap(sql, pkValue);
+    default <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue) {
+        String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " = ?";
+        return selectMap(sql, columnValue);
     }
 
     @Override
@@ -137,12 +143,18 @@ public interface SqlDaoContext extends DaoContext {
     }
 
     @Override
-    default <ID> List<Map<String, Object>> getList(String tableName, String pkColumn, Collection<ID> pkValues) {
+    default List<Map<String, Object>> getList(String tableName) {
+        String sql = "SELECT * FROM " + tableName;
+        return selectList(sql);
+    }
+
+    @Override
+    default <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues) {
         List<Map<String, Object>> result = new ArrayList<>();
-        if (Objects.nonNull(pkValues) && pkValues.size() > 0) {
-            String sql = "SELECT * FROM " + tableName + " WHERE " + pkColumn + " IN (:pkValues)";
+        if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
+            String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " IN (:columnValues)";
             logger.info(sql);
-            result = getNamedJdbcTemplate().queryForList(sql, Collections.singletonMap("pkValues", pkValues));
+            result = getNamedJdbcTemplate().queryForList(sql, Collections.singletonMap("columnValues", columnValues));
         }
         return result;
     }

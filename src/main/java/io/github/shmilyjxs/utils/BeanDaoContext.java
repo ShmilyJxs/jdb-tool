@@ -90,10 +90,10 @@ public abstract class BeanDaoContext implements SqlDaoContext {
                     if (skipBlank) {
                         beanMap = BeanUtil.skipBlank(beanMap);
                     }
-                    Object pkVal = beanMap.remove(pkFiled.getName());
-                    if (Objects.nonNull(pkVal)) {
+                    Object pkValue = beanMap.remove(pkFiled.getName());
+                    if (Objects.nonNull(pkValue)) {
                         Map<String, String> convertMap = convert(tableName);
-                        Pair<String, Object> pkPair = Optional.ofNullable(convertMap.get(pkFiled.getName())).map(e -> new Pair<>(e, pkVal)).orElse(null);
+                        Pair<String, Object> pkPair = Optional.ofNullable(convertMap.get(pkFiled.getName())).map(e -> new Pair<>(e, pkValue)).orElse(null);
                         if (Objects.nonNull(pkPair)) {
                             List<String> columnList = new ArrayList<>();
                             List<Object> valueList = new ArrayList<>();
@@ -131,11 +131,11 @@ public abstract class BeanDaoContext implements SqlDaoContext {
                     Field pkFiled = pkFiled(clazz);
                     if (Objects.nonNull(pkFiled)) {
                         pkFiled.setAccessible(true);
-                        Object pkVal = pkFiled.get(obj);
-                        if (Objects.nonNull(pkVal)) {
-                            String pkColumn = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
-                            if (Objects.nonNull(pkColumn)) {
-                                result = delete(tableName, pkColumn, pkVal);
+                        Object pkValue = pkFiled.get(obj);
+                        if (Objects.nonNull(pkValue)) {
+                            String pkName = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
+                            if (Objects.nonNull(pkName)) {
+                                result = delete(tableName, pkName, pkValue);
                             }
                         }
                     }
@@ -155,9 +155,9 @@ public abstract class BeanDaoContext implements SqlDaoContext {
             if (Objects.nonNull(tableName)) {
                 Field pkFiled = pkFiled(mappedClass);
                 if (Objects.nonNull(pkFiled)) {
-                    String pkColumn = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
-                    if (Objects.nonNull(pkColumn)) {
-                        result = delete(tableName, pkColumn, pkValue);
+                    String pkName = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
+                    if (Objects.nonNull(pkName)) {
+                        result = delete(tableName, pkName, pkValue);
                     }
                 }
             }
@@ -173,9 +173,9 @@ public abstract class BeanDaoContext implements SqlDaoContext {
             if (Objects.nonNull(tableName)) {
                 Field pkFiled = pkFiled(mappedClass);
                 if (Objects.nonNull(pkFiled)) {
-                    String pkColumn = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
-                    if (Objects.nonNull(pkColumn)) {
-                        result = batchDelete(tableName, pkColumn, pkValues);
+                    String pkName = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
+                    if (Objects.nonNull(pkName)) {
+                        result = batchDelete(tableName, pkName, pkValues);
                     }
                 }
             }
@@ -190,14 +190,26 @@ public abstract class BeanDaoContext implements SqlDaoContext {
             if (Objects.nonNull(tableName)) {
                 Field pkFiled = pkFiled(mappedClass);
                 if (Objects.nonNull(pkFiled)) {
-                    String pkColumn = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
-                    if (Objects.nonNull(pkColumn)) {
-                        return getBean(tableName, pkColumn, pkValue, mappedClass);
+                    String pkName = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
+                    if (Objects.nonNull(pkName)) {
+                        return getBean(tableName, pkName, pkValue, mappedClass);
                     }
                 }
             }
         }
         return null;
+    }
+
+    @Override
+    public <T> List<T> getBeans(Class<T> mappedClass) {
+        List<T> result = new ArrayList<>();
+        if (Objects.nonNull(mappedClass)) {
+            String tableName = getTableName(mappedClass);
+            if (Objects.nonNull(tableName)) {
+                result = getBeans(tableName, mappedClass);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -208,9 +220,9 @@ public abstract class BeanDaoContext implements SqlDaoContext {
             if (Objects.nonNull(tableName)) {
                 Field pkFiled = pkFiled(mappedClass);
                 if (Objects.nonNull(pkFiled)) {
-                    String pkColumn = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
-                    if (Objects.nonNull(pkColumn)) {
-                        result = getBeans(tableName, pkColumn, pkValues, mappedClass);
+                    String pkName = Optional.of(convert(tableName)).map(e -> e.get(pkFiled.getName())).orElse(null);
+                    if (Objects.nonNull(pkName)) {
+                        result = getBeans(tableName, pkName, pkValues, mappedClass);
                     }
                 }
             }
