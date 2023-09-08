@@ -2,6 +2,7 @@ package io.github.shmilyjxs.utils;
 
 import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cglib.beans.BeanCopier;
 import org.springframework.cglib.beans.BeanMap;
 
 import java.lang.reflect.Field;
@@ -98,5 +99,12 @@ public class BeanUtil {
                 .map(e -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, e))
                 .map(e -> toLowerCase ? e.toLowerCase() : e.toUpperCase())
                 .orElse(null);
+    }
+
+    public static <F, T> T copy(F from, T to) {
+        return Optional.of(from).flatMap(f -> Optional.of(to).map(t -> {
+            BeanCopier.create(f.getClass(), t.getClass(), false).copy(f, t, null);
+            return t;
+        })).get();
     }
 }
