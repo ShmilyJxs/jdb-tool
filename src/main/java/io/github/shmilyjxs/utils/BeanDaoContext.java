@@ -11,7 +11,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public abstract class BeanDaoContext implements SqlDaoContext {
+public abstract class BeanDaoContext extends SqlDaoContext {
 
     private static final Map<String, Map<String, String>> TABLE_CACHE = new HashMap<>();
 

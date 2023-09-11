@@ -1,5 +1,6 @@
 package io.github.shmilyjxs.utils;
 
+import com.google.common.collect.Lists;
 import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,95 +8,117 @@ import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public interface SqlDaoContext extends DaoContext {
+public abstract class SqlDaoContext implements DaoContext {
 
-    Logger logger = LoggerFactory.getLogger(SqlDaoContext.class);
+    private static final Logger logger = LoggerFactory.getLogger(SqlDaoContext.class);
+
+    private static final int SAFE_SIZE = 1000;
+
+    private static <C> String conditionSql(Map<String, Object> paramMap, String columnName, Collection<C> columnValues) {
+        String sql;
+        if (columnValues.size() > SAFE_SIZE) {
+            List<List<C>> partitionList = Lists.partition(new ArrayList<>(columnValues), SAFE_SIZE);
+            sql = IntStream.range(0, partitionList.size()).mapToObj(index -> {
+                String key = columnName + index;
+                paramMap.put(key, partitionList.get(index));
+                return columnName + " IN (:" + key + ")";
+            }).collect(Collectors.joining(" OR ", "( ", " )"));
+        } else {
+            paramMap.put(columnName, columnValues);
+            sql = columnName + " IN (:" + columnName + ")";
+        }
+        return sql;
+    }
 
     @Override
-    default long count(@Language("SQL") String sql, Object... args) {
+    public long count(@Language("SQL") String sql, Object... args) {
         String countSql = "SELECT COUNT(*) FROM ( " + sql + " ) tmp";
         logger.info(countSql);
         return getJdbcTemplate().queryForObject(countSql, Long.class, args);
     }
 
     @Override
-    default boolean exists(@Language("SQL") String sql, Object... args) {
+    public boolean exists(@Language("SQL") String sql, Object... args) {
         return count(sql, args) > 0L;
     }
 
     @Override
-    default int nativeInsert(@Language("SQL") String sql, Object... args) {
+    public int nativeInsert(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
 
     @Override
-    default int nativeUpdate(@Language("SQL") String sql, Object... args) {
+    public int nativeUpdate(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
 
     @Override
-    default int nativeDelete(@Language("SQL") String sql, Object... args) {
+    public int nativeDelete(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
 
     @Override
-    default <C> int delete(String tableName, String columnName, C columnValue) {
+    public <C> int delete(String tableName, String columnName, C columnValue) {
         String sql = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
         return nativeDelete(sql, columnValue);
     }
 
     @Override
-    default <C> int batchDelete(String tableName, String columnName, Collection<C> columnValues) {
+    public <C> int batchDelete(String tableName, String columnName, Collection<C> columnValues) {
         int result = 0;
         if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
-            String sql = "DELETE FROM " + tableName + " WHERE " + columnName + " IN (:columnValues)";
+            Map<String, Object> paramMap = new HashMap<>();
+            String sql = "DELETE FROM " + tableName + " WHERE " + conditionSql(paramMap, columnName, columnValues);
             logger.info(sql);
-            result = getNamedJdbcTemplate().update(sql, Collections.singletonMap("columnValues", columnValues));
+            result = getNamedJdbcTemplate().update(sql, paramMap);
         }
         return result;
     }
 
     @Override
-    default <T> T selectBean(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
+    public <T> T selectBean(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
         List<T> result = selectBeans(sql, mappedClass, args);
         return DataAccessUtils.singleResult(result);
     }
 
     @Override
-    default <T, C> T getBean(String tableName, String columnName, C columnValue, Class<T> mappedClass) {
+    public <T, C> T getBean(String tableName, String columnName, C columnValue, Class<T> mappedClass) {
         String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " = ?";
         return selectBean(sql, mappedClass, columnValue);
     }
 
     @Override
-    default <T> List<T> selectBeans(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
+    public <T> List<T> selectBeans(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().query(sql, new BeanPropertyRowMapper<>(mappedClass), args);
     }
 
     @Override
-    default <T> List<T> getBeans(String tableName, Class<T> mappedClass) {
+    public <T> List<T> getBeans(String tableName, Class<T> mappedClass) {
         String sql = "SELECT * FROM " + tableName;
         return selectBeans(sql, mappedClass);
     }
 
     @Override
-    default <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass) {
+    public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass) {
         List<T> result = new ArrayList<>();
         if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
-            String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " IN (:columnValues)";
+            Map<String, Object> paramMap = new HashMap<>();
+            String sql = "SELECT * FROM " + tableName + " WHERE " + conditionSql(paramMap, columnName, columnValues);
             logger.info(sql);
-            result = getNamedJdbcTemplate().query(sql, Collections.singletonMap("columnValues", columnValues), new BeanPropertyRowMapper<>(mappedClass));
+            result = getNamedJdbcTemplate().query(sql, paramMap, new BeanPropertyRowMapper<>(mappedClass));
         }
         return result;
     }
 
     @Override
-    default <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
+    public <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
@@ -112,55 +135,56 @@ public interface SqlDaoContext extends DaoContext {
                 }
             }
         }
-        long rowStart = (pageNum - 1L) * pageSize + 1L;
-        long rowEnd = Math.min(pageNum * pageSize, total);
+        long startRow = (pageNum - 1L) * pageSize + 1L;
+        long endRow = Math.min(pageNum * pageSize, total);
 
         result.put("pageNum", pageNum);
         result.put("pageSize", pageSize);
-        result.put("rowStart", rowStart);
-        result.put("rowEnd", rowEnd);
+        result.put("startRow", startRow);
+        result.put("endRow", endRow);
         result.put("total", total);
         result.put("records", records);
         return result;
     }
 
     @Override
-    default Map<String, Object> selectMap(@Language("SQL") String sql, Object... args) {
+    public Map<String, Object> selectMap(@Language("SQL") String sql, Object... args) {
         List<Map<String, Object>> result = selectList(sql, args);
         return DataAccessUtils.singleResult(result);
     }
 
     @Override
-    default <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue) {
+    public <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue) {
         String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " = ?";
         return selectMap(sql, columnValue);
     }
 
     @Override
-    default List<Map<String, Object>> selectList(@Language("SQL") String sql, Object... args) {
+    public List<Map<String, Object>> selectList(@Language("SQL") String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().queryForList(sql, args);
     }
 
     @Override
-    default List<Map<String, Object>> getList(String tableName) {
+    public List<Map<String, Object>> getList(String tableName) {
         String sql = "SELECT * FROM " + tableName;
         return selectList(sql);
     }
 
     @Override
-    default <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues) {
+    public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues) {
         List<Map<String, Object>> result = new ArrayList<>();
         if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
-            String sql = "SELECT * FROM " + tableName + " WHERE " + columnName + " IN (:columnValues)";
+            Map<String, Object> paramMap = new HashMap<>();
+            String sql = "SELECT * FROM " + tableName + " WHERE " + conditionSql(paramMap, columnName, columnValues);
             logger.info(sql);
-            result = getNamedJdbcTemplate().queryForList(sql, Collections.singletonMap("columnValues", columnValues));
+            result = getNamedJdbcTemplate().queryForList(sql, paramMap);
         }
         return result;
     }
 
     @Override
-    default Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Object... args) {
+    public Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Object... args) {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
@@ -177,13 +201,13 @@ public interface SqlDaoContext extends DaoContext {
                 }
             }
         }
-        long rowStart = (pageNum - 1L) * pageSize + 1L;
-        long rowEnd = Math.min(pageNum * pageSize, total);
+        long startRow = (pageNum - 1L) * pageSize + 1L;
+        long endRow = Math.min(pageNum * pageSize, total);
 
         result.put("pageNum", pageNum);
         result.put("pageSize", pageSize);
-        result.put("rowStart", rowStart);
-        result.put("rowEnd", rowEnd);
+        result.put("startRow", startRow);
+        result.put("endRow", endRow);
         result.put("total", total);
         result.put("records", records);
         return result;
