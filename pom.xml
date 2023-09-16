@@ -13,7 +13,7 @@
 
     <groupId>io.github.shmilyjxs</groupId>
     <artifactId>jdb-tool</artifactId>
-    <version>1.10</version>
+    <version>1.11</version>
 
     <licenses>
         <license>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>5.3.29</version>
+            <version>5.3.30</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

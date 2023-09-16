@@ -5,10 +5,7 @@ import org.intellij.lang.annotations.Language;
 public class PostgreSQLDialect implements IDialect {
 
     @Override
-    public String pageSql(@Language("SQL") String sql, long pageNum, long pageSize) {
-        pageNum = Math.max(pageNum, 1L);
-        long limit = Math.max(pageSize, 0L);
-        long offset = (pageNum - 1L) * limit;
+    public String pageSql(@Language("SQL") String sql, long offset, long limit) {
         StringBuilder stringBuilder = new StringBuilder(sql);
         stringBuilder.append(" LIMIT ");
         stringBuilder.append(limit);

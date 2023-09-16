@@ -20,6 +20,8 @@ public interface DaoContext {
 
     DBEnum getDBEnum();
 
+    <T> T scalar(@Language("SQL") String sql, Class<T> mappedClass, Object... args);
+
     long count(@Language("SQL") String sql, Object... args);
 
     boolean exists(@Language("SQL") String sql, Object... args);
@@ -40,8 +42,6 @@ public interface DaoContext {
 
     <T> List<T> selectBeans(@Language("SQL") String sql, Class<T> mappedClass, Object... args);
 
-    <T> List<T> getBeans(String tableName, Class<T> mappedClass);
-
     <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass);
 
     <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args);
@@ -51,8 +51,6 @@ public interface DaoContext {
     <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue);
 
     List<Map<String, Object>> selectList(@Language("SQL") String sql, Object... args);
-
-    List<Map<String, Object>> getList(String tableName);
 
     <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues);
 
@@ -69,8 +67,6 @@ public interface DaoContext {
     <T, ID> int batchDelete(Collection<ID> pkValues, Class<T> mappedClass);
 
     <T, ID> T getBean(ID pkValue, Class<T> mappedClass);
-
-    <T> List<T> getBeans(Class<T> mappedClass);
 
     <T, ID> List<T> getBeans(Collection<ID> pkValues, Class<T> mappedClass);
 }

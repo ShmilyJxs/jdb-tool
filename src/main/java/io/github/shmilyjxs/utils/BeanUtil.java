@@ -16,7 +16,7 @@ public class BeanUtil {
             Map<String, Object> map = new HashMap<>();
             BeanMap.create(e).forEach((key, value) -> map.put((String) key, value));
 
-            Map<String, Object> sortedMap = new LinkedHashMap<>();
+            Map<String, Object> sortedMap = new LinkedHashMap<>(map.size());
             List<String> nameList = Arrays.stream(e.getClass().getDeclaredFields()).map(Field::getName).collect(Collectors.toList());
             map.entrySet().stream().sorted(Comparator.comparingInt(o -> nameList.indexOf(o.getKey()))).forEach(entry -> sortedMap.put(entry.getKey(), entry.getValue()));
             return sortedMap;
@@ -46,7 +46,7 @@ public class BeanUtil {
 
     public static Map<String, Object> dbToJava(Map<String, Object> dbMap) {
         return Optional.ofNullable(dbMap).map(e -> {
-            Map<String, Object> javaMap = new LinkedHashMap<>();
+            Map<String, Object> javaMap = new LinkedHashMap<>(e.size());
             e.forEach((key, val) -> javaMap.put(dbToJava(key), val));
             return javaMap;
         }).orElse(null);
@@ -58,7 +58,7 @@ public class BeanUtil {
 
     public static Map<String, Object> javaToDb(Map<String, Object> javaMap) {
         return Optional.ofNullable(javaMap).map(e -> {
-            Map<String, Object> dbMap = new LinkedHashMap<>();
+            Map<String, Object> dbMap = new LinkedHashMap<>(e.size());
             e.forEach((key, val) -> dbMap.put(javaToDb(key), val));
             return dbMap;
         }).orElse(null);

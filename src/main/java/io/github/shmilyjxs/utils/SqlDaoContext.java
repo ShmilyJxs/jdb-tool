@@ -1,6 +1,7 @@
 package io.github.shmilyjxs.utils;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.ObjectUtils;
 import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ public abstract class SqlDaoContext implements DaoContext {
 
     private static final int SAFE_SIZE = 1000;
 
-    private static <C> String conditionSql(Map<String, Object> paramMap, String columnName, Collection<C> columnValues) {
+    private static <C> String inSql(Map<String, Object> paramMap, String columnName, Collection<C> columnValues) {
         String sql;
         if (columnValues.size() > SAFE_SIZE) {
             List<List<C>> partitionList = Lists.partition(new ArrayList<>(columnValues), SAFE_SIZE);
@@ -31,6 +32,12 @@ public abstract class SqlDaoContext implements DaoContext {
             sql = columnName + " IN (:" + columnName + ")";
         }
         return sql;
+    }
+
+    @Override
+    public <T> T scalar(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
+        logger.info(sql);
+        return getJdbcTemplate().queryForObject(sql, mappedClass, args);
     }
 
     @Override
@@ -72,9 +79,9 @@ public abstract class SqlDaoContext implements DaoContext {
     @Override
     public <C> int batchDelete(String tableName, String columnName, Collection<C> columnValues) {
         int result = 0;
-        if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
+        if (ObjectUtils.isNotEmpty(columnValues)) {
             Map<String, Object> paramMap = new HashMap<>();
-            String sql = "DELETE FROM " + tableName + " WHERE " + conditionSql(paramMap, columnName, columnValues);
+            String sql = "DELETE FROM " + tableName + " WHERE " + inSql(paramMap, columnName, columnValues);
             logger.info(sql);
             result = getNamedJdbcTemplate().update(sql, paramMap);
         }
@@ -100,17 +107,11 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public <T> List<T> getBeans(String tableName, Class<T> mappedClass) {
-        String sql = "SELECT * FROM " + tableName;
-        return selectBeans(sql, mappedClass);
-    }
-
-    @Override
     public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass) {
-        List<T> result = new ArrayList<>();
-        if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
+        List<T> result = Collections.emptyList();
+        if (ObjectUtils.isNotEmpty(columnValues)) {
             Map<String, Object> paramMap = new HashMap<>();
-            String sql = "SELECT * FROM " + tableName + " WHERE " + conditionSql(paramMap, columnName, columnValues);
+            String sql = "SELECT * FROM " + tableName + " WHERE " + inSql(paramMap, columnName, columnValues);
             logger.info(sql);
             result = getNamedJdbcTemplate().query(sql, paramMap, new BeanPropertyRowMapper<>(mappedClass));
         }
@@ -122,27 +123,24 @@ public abstract class SqlDaoContext implements DaoContext {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
-        Map<String, Object> result = new HashMap<>();
-        List<T> records = new ArrayList<>();
         long total = count(sql, args);
+        long pages = 0L;
+        List<T> records = Collections.emptyList();
         if (total > 0L) {
             if (pageSize > 0L) {
-                long pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
-                result.put("pages", pages);
+                pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
                 if (pageNum <= pages) {
-                    String pageSql = getDBEnum().getDialect().pageSql(sql, pageNum, pageSize);
+                    String pageSql = getDBEnum().getDialect().pageSql(sql, (pageNum - 1) * pageSize, pageSize);
                     records = selectBeans(pageSql, mappedClass, args);
                 }
             }
         }
-        long startRow = (pageNum - 1L) * pageSize + 1L;
-        long endRow = Math.min(pageNum * pageSize, total);
 
+        Map<String, Object> result = new HashMap<>(5);
         result.put("pageNum", pageNum);
         result.put("pageSize", pageSize);
-        result.put("startRow", startRow);
-        result.put("endRow", endRow);
         result.put("total", total);
+        result.put("pages", pages);
         result.put("records", records);
         return result;
     }
@@ -166,17 +164,11 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public List<Map<String, Object>> getList(String tableName) {
-        String sql = "SELECT * FROM " + tableName;
-        return selectList(sql);
-    }
-
-    @Override
     public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        if (Objects.nonNull(columnValues) && columnValues.size() > 0) {
+        List<Map<String, Object>> result = Collections.emptyList();
+        if (ObjectUtils.isNotEmpty(columnValues)) {
             Map<String, Object> paramMap = new HashMap<>();
-            String sql = "SELECT * FROM " + tableName + " WHERE " + conditionSql(paramMap, columnName, columnValues);
+            String sql = "SELECT * FROM " + tableName + " WHERE " + inSql(paramMap, columnName, columnValues);
             logger.info(sql);
             result = getNamedJdbcTemplate().queryForList(sql, paramMap);
         }
@@ -188,27 +180,24 @@ public abstract class SqlDaoContext implements DaoContext {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
-        Map<String, Object> result = new HashMap<>();
-        List<Map<String, Object>> records = new ArrayList<>();
         long total = count(sql, args);
+        long pages = 0L;
+        List<Map<String, Object>> records = Collections.emptyList();
         if (total > 0L) {
             if (pageSize > 0L) {
-                long pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
-                result.put("pages", pages);
+                pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
                 if (pageNum <= pages) {
-                    String pageSql = getDBEnum().getDialect().pageSql(sql, pageNum, pageSize);
+                    String pageSql = getDBEnum().getDialect().pageSql(sql, (pageNum - 1) * pageSize, pageSize);
                     records = selectList(pageSql, args);
                 }
             }
         }
-        long startRow = (pageNum - 1L) * pageSize + 1L;
-        long endRow = Math.min(pageNum * pageSize, total);
 
+        Map<String, Object> result = new HashMap<>(5);
         result.put("pageNum", pageNum);
         result.put("pageSize", pageSize);
-        result.put("startRow", startRow);
-        result.put("endRow", endRow);
         result.put("total", total);
+        result.put("pages", pages);
         result.put("records", records);
         return result;
     }
