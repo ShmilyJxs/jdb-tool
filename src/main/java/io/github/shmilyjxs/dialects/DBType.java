@@ -2,7 +2,7 @@ package io.github.shmilyjxs.dialects;
 
 import java.util.Arrays;
 
-public enum DBEnum {
+public enum DBType {
     ORACLE("Oracle", new OracleDialect()),
     MYSQL("MySQL", new MySQLDialect()),
     POSTGRESQL("PostgreSQL", new PostgreSQLDialect());
@@ -10,12 +10,12 @@ public enum DBEnum {
     private final String productName;
     private final IDialect dialect;
 
-    DBEnum(String productName, IDialect dialect) {
+    DBType(String productName, IDialect dialect) {
         this.productName = productName;
         this.dialect = dialect;
     }
 
-    public static DBEnum fromProductName(String productName) {
+    public static DBType fromProductName(String productName) {
         return Arrays.stream(values()).filter(e -> e.getProductName().equalsIgnoreCase(productName)).findAny().orElse(null);
     }
 

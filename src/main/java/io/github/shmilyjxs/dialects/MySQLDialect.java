@@ -5,7 +5,7 @@ import org.intellij.lang.annotations.Language;
 public class MySQLDialect implements IDialect {
 
     @Override
-    public String pageSql(@Language("SQL") String sql, long offset, long limit) {
+    public String pageSql(@Language("SQL") final String sql, long offset, long limit) {
         StringBuilder stringBuilder = new StringBuilder(sql);
         stringBuilder.append(" LIMIT ");
         if (offset == 0L) {

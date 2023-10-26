@@ -2,6 +2,7 @@ package io.github.shmilyjxs.utils;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,37 +36,29 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public <T> T scalar(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
+    public <T> T scalar(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().queryForObject(sql, mappedClass, args);
     }
 
     @Override
-    public long count(@Language("SQL") String sql, Object... args) {
-        String countSql = "SELECT COUNT(*) FROM ( " + sql + " ) tmp";
-        logger.info(countSql);
-        return getJdbcTemplate().queryForObject(countSql, Long.class, args);
+    public <T> List<T> scalarList(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
+        logger.info(sql);
+        return getJdbcTemplate().queryForList(sql, mappedClass, args);
     }
 
     @Override
-    public boolean exists(@Language("SQL") String sql, Object... args) {
+    public long count(@Language("SQL") final String sql, Object... args) {
+        return scalar("SELECT COUNT(*) FROM ( " + sql + " ) tmp", Long.class, args);
+    }
+
+    @Override
+    public boolean exists(@Language("SQL") final String sql, Object... args) {
         return count(sql, args) > 0L;
     }
 
     @Override
-    public int nativeInsert(@Language("SQL") String sql, Object... args) {
-        logger.info(sql);
-        return getJdbcTemplate().update(sql, args);
-    }
-
-    @Override
-    public int nativeUpdate(@Language("SQL") String sql, Object... args) {
-        logger.info(sql);
-        return getJdbcTemplate().update(sql, args);
-    }
-
-    @Override
-    public int nativeDelete(@Language("SQL") String sql, Object... args) {
+    public int nativeUpdate(@Language("SQL") final String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().update(sql, args);
     }
@@ -73,7 +66,16 @@ public abstract class SqlDaoContext implements DaoContext {
     @Override
     public <C> int delete(String tableName, String columnName, C columnValue) {
         String sql = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
-        return nativeDelete(sql, columnValue);
+        return nativeUpdate(sql, columnValue);
+    }
+
+    @Override
+    public int delete(String tableName, Map<String, Object> columnMap) {
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            String sql = "DELETE FROM " + tableName + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            return nativeUpdate(sql, columnMap.values().toArray());
+        }
+        return 0;
     }
 
     @Override
@@ -89,7 +91,7 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public <T> T selectBean(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
+    public <T> T selectBean(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
         List<T> result = selectBeans(sql, mappedClass, args);
         return DataAccessUtils.singleResult(result);
     }
@@ -101,17 +103,32 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public <T> List<T> selectBeans(@Language("SQL") String sql, Class<T> mappedClass, Object... args) {
+    public <T> T getBean(String tableName, Map<String, Object> columnMap, Class<T> mappedClass) {
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            String sql = "SELECT * FROM " + tableName + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            return selectBean(sql, mappedClass, columnMap.values().toArray());
+        }
+        return null;
+    }
+
+    @Override
+    public <T> List<T> selectBeans(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().query(sql, new BeanPropertyRowMapper<>(mappedClass), args);
     }
 
     @Override
-    public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass) {
+    public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass, String... orderBy) {
         List<T> result = Collections.emptyList();
         if (ObjectUtils.isNotEmpty(columnValues)) {
             Map<String, Object> paramMap = new HashMap<>();
             String sql = "SELECT * FROM " + tableName + " WHERE " + inSql(paramMap, columnName, columnValues);
+            List<String> orderByList = Optional.ofNullable(orderBy)
+                    .map(e -> Arrays.stream(orderBy).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
+                    .orElse(Collections.emptyList());
+            if (ObjectUtils.isNotEmpty(orderByList)) {
+                sql = sql + " ORDER BY " + String.join(" , ", orderByList);
+            }
             logger.info(sql);
             result = getNamedJdbcTemplate().query(sql, paramMap, new BeanPropertyRowMapper<>(mappedClass));
         }
@@ -119,7 +136,24 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public <T> Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
+    public <T> List<T> getBeans(String tableName, Map<String, Object> columnMap, Class<T> mappedClass, String... orderBy) {
+        String sql = "SELECT * FROM " + tableName;
+        Collection<Object> valueList = Collections.emptyList();
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            sql = sql + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            valueList = columnMap.values();
+        }
+        List<String> orderByList = Optional.ofNullable(orderBy)
+                .map(e -> Arrays.stream(orderBy).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        if (ObjectUtils.isNotEmpty(orderByList)) {
+            sql = sql + " ORDER BY " + String.join(" , ", orderByList);
+        }
+        return selectBeans(sql, mappedClass, valueList.toArray());
+    }
+
+    @Override
+    public <T> Map<String, Object> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
@@ -130,7 +164,7 @@ public abstract class SqlDaoContext implements DaoContext {
             if (pageSize > 0L) {
                 pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
                 if (pageNum <= pages) {
-                    String pageSql = getDBEnum().getDialect().pageSql(sql, (pageNum - 1) * pageSize, pageSize);
+                    String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
                     records = selectBeans(pageSql, mappedClass, args);
                 }
             }
@@ -146,7 +180,24 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public Map<String, Object> selectMap(@Language("SQL") String sql, Object... args) {
+    public <T> Map<String, Object> selectPage(String tableName, Map<String, Object> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy) {
+        String sql = "SELECT * FROM " + tableName;
+        Collection<Object> valueList = Collections.emptyList();
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            sql = sql + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            valueList = columnMap.values();
+        }
+        List<String> orderByList = Optional.ofNullable(orderBy)
+                .map(e -> Arrays.stream(orderBy).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        if (ObjectUtils.isNotEmpty(orderByList)) {
+            sql = sql + " ORDER BY " + String.join(" , ", orderByList);
+        }
+        return selectPage(sql, pageNum, pageSize, mappedClass, valueList.toArray());
+    }
+
+    @Override
+    public Map<String, Object> selectMap(@Language("SQL") final String sql, Object... args) {
         List<Map<String, Object>> result = selectList(sql, args);
         return DataAccessUtils.singleResult(result);
     }
@@ -158,17 +209,32 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public List<Map<String, Object>> selectList(@Language("SQL") String sql, Object... args) {
+    public Map<String, Object> getMap(String tableName, Map<String, Object> columnMap) {
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            String sql = "SELECT * FROM " + tableName + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            return selectMap(sql, columnMap.values().toArray());
+        }
+        return null;
+    }
+
+    @Override
+    public List<Map<String, Object>> selectList(@Language("SQL") final String sql, Object... args) {
         logger.info(sql);
         return getJdbcTemplate().queryForList(sql, args);
     }
 
     @Override
-    public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues) {
+    public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues, String... orderBy) {
         List<Map<String, Object>> result = Collections.emptyList();
         if (ObjectUtils.isNotEmpty(columnValues)) {
             Map<String, Object> paramMap = new HashMap<>();
             String sql = "SELECT * FROM " + tableName + " WHERE " + inSql(paramMap, columnName, columnValues);
+            List<String> orderByList = Optional.ofNullable(orderBy)
+                    .map(e -> Arrays.stream(orderBy).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
+                    .orElse(Collections.emptyList());
+            if (ObjectUtils.isNotEmpty(orderByList)) {
+                sql = sql + " ORDER BY " + String.join(" , ", orderByList);
+            }
             logger.info(sql);
             result = getNamedJdbcTemplate().queryForList(sql, paramMap);
         }
@@ -176,7 +242,24 @@ public abstract class SqlDaoContext implements DaoContext {
     }
 
     @Override
-    public Map<String, Object> selectPage(@Language("SQL") String sql, long pageNum, long pageSize, Object... args) {
+    public List<Map<String, Object>> getList(String tableName, Map<String, Object> columnMap, String... orderBy) {
+        String sql = "SELECT * FROM " + tableName;
+        Collection<Object> valueList = Collections.emptyList();
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            sql = sql + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            valueList = columnMap.values();
+        }
+        List<String> orderByList = Optional.ofNullable(orderBy)
+                .map(e -> Arrays.stream(orderBy).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        if (ObjectUtils.isNotEmpty(orderByList)) {
+            sql = sql + " ORDER BY " + String.join(" , ", orderByList);
+        }
+        return selectList(sql, valueList.toArray());
+    }
+
+    @Override
+    public Map<String, Object> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Object... args) {
         pageNum = Math.max(pageNum, 1L);
         pageSize = Math.max(pageSize, 0L);
 
@@ -187,7 +270,7 @@ public abstract class SqlDaoContext implements DaoContext {
             if (pageSize > 0L) {
                 pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
                 if (pageNum <= pages) {
-                    String pageSql = getDBEnum().getDialect().pageSql(sql, (pageNum - 1) * pageSize, pageSize);
+                    String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
                     records = selectList(pageSql, args);
                 }
             }
@@ -200,5 +283,22 @@ public abstract class SqlDaoContext implements DaoContext {
         result.put("pages", pages);
         result.put("records", records);
         return result;
+    }
+
+    @Override
+    public Map<String, Object> selectPage(String tableName, Map<String, Object> columnMap, long pageNum, long pageSize, String... orderBy) {
+        String sql = "SELECT * FROM " + tableName;
+        Collection<Object> valueList = Collections.emptyList();
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            sql = sql + " WHERE " + columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND "));
+            valueList = columnMap.values();
+        }
+        List<String> orderByList = Optional.ofNullable(orderBy)
+                .map(e -> Arrays.stream(orderBy).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+        if (ObjectUtils.isNotEmpty(orderByList)) {
+            sql = sql + " ORDER BY " + String.join(" , ", orderByList);
+        }
+        return selectPage(sql, pageNum, pageSize, valueList.toArray());
     }
 }

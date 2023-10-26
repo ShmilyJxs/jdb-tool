@@ -5,7 +5,7 @@ import org.intellij.lang.annotations.Language;
 public class OracleDialect implements IDialect {
 
     @Override
-    public String pageSql(@Language("SQL") String sql, long offset, long limit) {
+    public String pageSql(@Language("SQL") final String sql, long offset, long limit) {
         return "SELECT * FROM ( SELECT tmp.* , ROWNUM ROW_ID FROM ( " + sql + " ) tmp WHERE ROWNUM <= " + (offset + limit) + ") WHERE ROW_ID > " + offset;
     }
 

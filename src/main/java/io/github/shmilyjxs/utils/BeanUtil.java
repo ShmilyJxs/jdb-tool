@@ -4,6 +4,7 @@ import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanCopier;
 import org.springframework.cglib.beans.BeanMap;
+import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -11,15 +12,15 @@ import java.util.stream.Collectors;
 
 public class BeanUtil {
 
-    public static <T> Map<String, Object> beanToSortedMap(T bean) {
+    public static <T> Map<String, Object> beanToLinkedMap(T bean) {
         return Optional.ofNullable(bean).map(e -> {
             Map<String, Object> map = new HashMap<>();
             BeanMap.create(e).forEach((key, value) -> map.put((String) key, value));
 
-            Map<String, Object> sortedMap = new LinkedHashMap<>(map.size());
+            Map<String, Object> result = new LinkedHashMap<>(map.size());
             List<String> nameList = Arrays.stream(e.getClass().getDeclaredFields()).map(Field::getName).collect(Collectors.toList());
-            map.entrySet().stream().sorted(Comparator.comparingInt(o -> nameList.indexOf(o.getKey()))).forEach(entry -> sortedMap.put(entry.getKey(), entry.getValue()));
-            return sortedMap;
+            map.entrySet().stream().sorted(Comparator.comparingInt(o -> nameList.indexOf(o.getKey()))).forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+            return result;
         }).orElse(null);
     }
 
@@ -65,7 +66,7 @@ public class BeanUtil {
     }
 
     public static <T> Map<String, Object> javaToDb(T bean) {
-        return Optional.ofNullable(bean).map(BeanUtil::beanToSortedMap).map(BeanUtil::javaToDb).orElse(null);
+        return Optional.ofNullable(bean).map(BeanUtil::beanToLinkedMap).map(BeanUtil::javaToDb).orElse(null);
     }
 
     public static Map<String, Object> skipBlank(Map<String, Object> map) {
@@ -106,5 +107,27 @@ public class BeanUtil {
             BeanCopier.create(f.getClass(), t.getClass(), false).copy(f, t, null);
             return t;
         })).get();
+    }
+
+    public static <T> Object getFieldValue(T bean, String fieldName) {
+        return getFieldValue(bean, ReflectionUtils.findField(bean.getClass(), fieldName));
+    }
+
+    public static <T> Object getFieldValue(T bean, Field field) {
+        return Optional.of(bean).flatMap(o -> Optional.of(field).map(e -> {
+            ReflectionUtils.makeAccessible(e);
+            return ReflectionUtils.getField(e, o);
+        })).orElse(null);
+    }
+
+    public static <T> void setFieldValue(T bean, String fieldName, Object fieldValue) {
+        setFieldValue(bean, ReflectionUtils.findField(bean.getClass(), fieldName), fieldValue);
+    }
+
+    public static <T> void setFieldValue(T bean, Field field, Object fieldValue) {
+        Optional.of(bean).ifPresent(o -> Optional.of(field).ifPresent(e -> {
+            ReflectionUtils.makeAccessible(e);
+            ReflectionUtils.setField(e, o, fieldValue);
+        }));
     }
 }
