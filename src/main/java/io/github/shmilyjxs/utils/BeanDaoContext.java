@@ -1,14 +1,10 @@
 package io.github.shmilyjxs.utils;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.LinkedCaseInsensitiveMap;
 import org.springframework.util.ReflectionUtils;
 
-import javax.persistence.Id;
-import javax.persistence.Table;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,22 +12,6 @@ import java.util.stream.Collectors;
 public abstract class BeanDaoContext extends SqlDaoContext {
 
     private static final Map<Class<?>, Triple<String, Pair<Field, String>, Map<String, String>>> CLASS_CACHE = new HashMap<>();
-
-    private static <T> String getTableName(T obj) {
-        return Optional.of(obj).map(T::getClass).map(BeanDaoContext::getTableName).get();
-    }
-
-    private static <T> String getTableName(Class<T> clazz) {
-        return Optional.of(clazz).map(e -> AnnotationUtils.findAnnotation(e, Table.class)).map(Table::name).filter(StringUtils::isNotBlank).orElseThrow(NullPointerException::new);
-    }
-
-    private static <T> Field idFiled(T obj) {
-        return Optional.of(obj).map(T::getClass).map(BeanDaoContext::idFiled).get();
-    }
-
-    private static <T> Field idFiled(Class<T> clazz) {
-        return Optional.of(clazz).flatMap(e -> Arrays.stream(e.getDeclaredFields()).filter(i -> Objects.nonNull(AnnotationUtils.findAnnotation(i, Id.class))).findAny()).orElseThrow(NullPointerException::new);
-    }
 
     @Override
     public <T> Triple<String, Pair<Field, String>, Map<String, String>> getTableInfo(T obj) {
@@ -45,8 +25,8 @@ public abstract class BeanDaoContext extends SqlDaoContext {
             synchronized (this) {
                 triple = CLASS_CACHE.get(clazz);
                 if (Objects.isNull(triple)) {
-                    String tableName = getTableName(clazz);
-                    Field idFiled = idFiled(clazz);
+                    String tableName = BeanUtil.getTableName(clazz);
+                    Field idFiled = BeanUtil.idFiled(clazz);
 
                     String sql = getDBType().getDialect().columnSql(tableName);
                     List<String> columnList = scalarList(sql, String.class);

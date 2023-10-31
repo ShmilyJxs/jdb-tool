@@ -4,32 +4,28 @@ import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanCopier;
 import org.springframework.cglib.beans.BeanMap;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ReflectionUtils;
 
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 public class BeanUtil {
 
     public static <T> Map<String, Object> beanToLinkedMap(T bean) {
         return Optional.ofNullable(bean).map(e -> {
-            Map<String, Object> map = new HashMap<>();
-            BeanMap.create(e).forEach((key, value) -> map.put((String) key, value));
-
+            BeanMap map = BeanMap.create(e);
             Map<String, Object> result = new LinkedHashMap<>(map.size());
-            List<String> nameList = Arrays.stream(e.getClass().getDeclaredFields()).map(Field::getName).collect(Collectors.toList());
-            map.entrySet().stream().sorted(Comparator.comparingInt(o -> nameList.indexOf(o.getKey()))).forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+            Arrays.stream(e.getClass().getDeclaredFields()).map(Field::getName).forEach(key -> result.put(key, map.get(key)));
             return result;
         }).orElse(null);
     }
 
     public static <T> Map<String, Object> beanToMap(T bean) {
-        return Optional.ofNullable(bean).map(e -> {
-            Map<String, Object> map = new HashMap<>();
-            BeanMap.create(e).forEach((key, value) -> map.put((String) key, value));
-            return map;
-        }).orElse(null);
+        return Optional.ofNullable(bean).map(BeanMap::create).orElse(null);
     }
 
     public static <T> T mapToBean(Map<String, Object> map, Class<T> type) {
@@ -45,30 +41,6 @@ public class BeanUtil {
         }
     }
 
-    public static Map<String, Object> dbToJava(Map<String, Object> dbMap) {
-        return Optional.ofNullable(dbMap).map(e -> {
-            Map<String, Object> javaMap = new LinkedHashMap<>(e.size());
-            e.forEach((key, val) -> javaMap.put(dbToJava(key), val));
-            return javaMap;
-        }).orElse(null);
-    }
-
-    public static <T> T dbToJava(Map<String, Object> dbMap, Class<T> type) {
-        return Optional.ofNullable(dbMap).map(BeanUtil::dbToJava).map(e -> mapToBean(e, type)).orElse(null);
-    }
-
-    public static Map<String, Object> javaToDb(Map<String, Object> javaMap) {
-        return Optional.ofNullable(javaMap).map(e -> {
-            Map<String, Object> dbMap = new LinkedHashMap<>(e.size());
-            e.forEach((key, val) -> dbMap.put(javaToDb(key), val));
-            return dbMap;
-        }).orElse(null);
-    }
-
-    public static <T> Map<String, Object> javaToDb(T bean) {
-        return Optional.ofNullable(bean).map(BeanUtil::beanToLinkedMap).map(BeanUtil::javaToDb).orElse(null);
-    }
-
     public static Map<String, Object> skipBlank(Map<String, Object> map) {
         return Optional.ofNullable(map).map(e -> {
             Map<String, Object> result = new LinkedHashMap<>();
@@ -80,6 +52,14 @@ public class BeanUtil {
                     return Objects.nonNull(value);
                 }
             }).forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+            return result;
+        }).orElse(null);
+    }
+
+    public static <K, V, R> Map<R, V> replaceKey(Map<K, V> map, Function<K, R> keyMapper) {
+        return Optional.ofNullable(map).map(e -> {
+            Map<R, V> result = new LinkedHashMap<>(e.size());
+            e.forEach((k, v) -> result.put(keyMapper.apply(k), v));
             return result;
         }).orElse(null);
     }
@@ -129,5 +109,13 @@ public class BeanUtil {
             ReflectionUtils.makeAccessible(e);
             ReflectionUtils.setField(e, o, fieldValue);
         }));
+    }
+
+    public static <T> String getTableName(Class<T> clazz) {
+        return Optional.of(clazz).map(e -> AnnotationUtils.findAnnotation(e, Table.class)).map(Table::name).filter(StringUtils::isNotBlank).orElseThrow(NullPointerException::new);
+    }
+
+    public static <T> Field idFiled(Class<T> clazz) {
+        return Optional.of(clazz).flatMap(e -> Arrays.stream(e.getDeclaredFields()).filter(i -> Objects.nonNull(AnnotationUtils.findAnnotation(i, Id.class))).findAny()).orElseThrow(NullPointerException::new);
     }
 }
