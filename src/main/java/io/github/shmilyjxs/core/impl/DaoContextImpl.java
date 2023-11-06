@@ -1,14 +1,16 @@
-package io.github.shmilyjxs.utils;
+package io.github.shmilyjxs.core.impl;
 
 import io.github.shmilyjxs.dialects.DBType;
+import io.github.shmilyjxs.utils.LazyInitializer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.JdbcUtils;
 
 import javax.sql.DataSource;
 import java.util.Objects;
+import java.util.UUID;
 
-public class DaoContextImpl extends BeanDaoContext {
+public class DaoContextImpl extends BaseBeanDao {
 
     private final DataSource dataSource;
     private final JdbcTemplate jdbcTemplate;
@@ -49,5 +51,10 @@ public class DaoContextImpl extends BeanDaoContext {
     @Override
     public DBType getDBType() {
         return Objects.requireNonNull(lazyDBType.get());
+    }
+
+    @Override
+    public Object idGenerator() {
+        return UUID.randomUUID().toString();
     }
 }
