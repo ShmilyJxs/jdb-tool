@@ -17,7 +17,7 @@ public interface IBeanDao {
 
     <T> T updateById(T obj, boolean skipBlank);
 
-    <T> T save(T obj, boolean skipBlank);
+    <T> T insertOrUpdate(T obj, boolean skipBlank);
 
     <T> int deleteById(T obj);
 

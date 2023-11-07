@@ -68,7 +68,7 @@ public abstract class BaseBeanDao extends BaseSqlDao {
     }
 
     @Override
-    public <T> T save(T obj, boolean skipBlank) {
+    public <T> T insertOrUpdate(T obj, boolean skipBlank) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(obj);
         Field idField = tableInfo.getMiddle().getKey();
         ReflectionUtils.makeAccessible(idField);
@@ -77,7 +77,12 @@ public abstract class BaseBeanDao extends BaseSqlDao {
             ReflectionUtils.setField(idField, obj, idGenerator());
             insert(tableInfo.getLeft(), buildMap(obj, skipBlank));
         } else {
-            update(tableInfo.getLeft(), buildMap(obj, skipBlank), tableInfo.getMiddle().getValue());
+            Map<String, Object> map = getMap(tableInfo.getLeft(), tableInfo.getMiddle().getValue(), idValue);
+            if (Objects.isNull(map)) {
+                insert(tableInfo.getLeft(), buildMap(obj, skipBlank));
+            } else {
+                update(tableInfo.getLeft(), buildMap(obj, skipBlank), tableInfo.getMiddle().getValue());
+            }
         }
         return obj;
     }
