@@ -28,7 +28,7 @@ public class BeanUtil {
         return Optional.ofNullable(bean).map(BeanMap::create).orElse(null);
     }
 
-    public static <T> T mapToBean(Map<String, Object> map, Class<T> type) {
+    public static <T> T mapToBean(Map<String, ?> map, Class<T> type) {
         if (Objects.isNull(map)) {
             return null;
         }
@@ -41,7 +41,7 @@ public class BeanUtil {
         }
     }
 
-    public static Map<String, Object> skipBlank(Map<String, Object> map) {
+    public static Map<String, Object> skipBlank(Map<String, ?> map) {
         return Optional.ofNullable(map).map(e -> {
             Map<String, Object> result = new LinkedHashMap<>();
             e.entrySet().stream().filter(entry -> {

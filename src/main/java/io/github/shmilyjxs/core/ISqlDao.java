@@ -12,6 +12,8 @@ public interface ISqlDao {
 
     int update(String tableName, Map<String, ?> columnMap, Collection<String> columns);
 
+    int update(String tableName, Map<String, ?> columnMap, Map<String, ?> whereMap);
+
     <C> int delete(String tableName, String columnName, C columnValue);
 
     int delete(String tableName, Map<String, ?> columnMap);

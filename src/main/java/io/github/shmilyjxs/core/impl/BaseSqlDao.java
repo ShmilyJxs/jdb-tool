@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.util.LinkedCaseInsensitiveMap;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -96,18 +97,38 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public int update(String tableName, Map<String, ?> columnMap, Collection<String> columns) {
         if (ObjectUtils.isNotEmpty(columnMap)) {
+            Map<String, Object> map = new LinkedCaseInsensitiveMap<>(columnMap.size());
+            map.putAll(columnMap);
             if (ObjectUtils.isNotEmpty(columns)) {
-                List<String> columnList = columns.stream().distinct().collect(Collectors.toList());
-                Object[] args = columnList.stream().map(columnMap::remove).map(Objects::requireNonNull).toArray();
-                if (ObjectUtils.isNotEmpty(columnMap)) {
+                Map<String, ?> whereMap = columns.stream().distinct().collect(Collectors.toMap(e -> e, map::remove));
+                return update(tableName, map, whereMap);
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public int update(String tableName, Map<String, ?> columnMap, Map<String, ?> whereMap) {
+        if (ObjectUtils.isNotEmpty(columnMap)) {
+            if (ObjectUtils.isNotEmpty(whereMap)) {
+                Map<String, Object> map = new LinkedCaseInsensitiveMap<>(whereMap.size());
+                map.putAll(whereMap);
+                Set<String> sets = columnMap.keySet();
+                Set<String> keys = sets.stream()
+                        .filter(map::containsKey)
+                        .filter(e -> Objects.equals(columnMap.get(e), map.get(e)))
+                        .collect(Collectors.toSet());
+                Map<String, Object> setMap = new LinkedHashMap<>();
+                sets.stream().filter(e -> keys.stream().noneMatch(key -> Objects.equals(key, e))).forEach(e -> setMap.put(e, columnMap.get(e)));
+                if (ObjectUtils.isNotEmpty(setMap)) {
                     StringBuilder stringBuilder = new StringBuilder();
                     stringBuilder.append("UPDATE ");
                     stringBuilder.append(tableName);
                     stringBuilder.append(" SET ");
-                    stringBuilder.append(columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" , ")));
+                    stringBuilder.append(setMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" , ")));
                     stringBuilder.append(" WHERE ");
-                    stringBuilder.append(columnList.stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND ")));
-                    return nativeUpdate(stringBuilder.toString(), ArrayUtils.addAll(columnMap.values().toArray(), args));
+                    stringBuilder.append(map.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND ")));
+                    return nativeUpdate(stringBuilder.toString(), ArrayUtils.addAll(setMap.values().toArray(), map.values().toArray()));
                 }
             }
         }
