@@ -48,21 +48,21 @@ public abstract class BaseSqlDao extends BaseNativeDao {
         stringBuilder.append(tableName);
         stringBuilder.append(" WHERE ");
         Map<String, Object> paramMap = new HashMap<>();
-        columnValues = columnValues.stream().distinct().collect(Collectors.toList());
-        if (columnValues.size() > SAFE_SIZE) {
-            List<List<C>> partitionList = Lists.partition(new ArrayList<>(columnValues), SAFE_SIZE);
+        List<C> values = columnValues.stream().distinct().collect(Collectors.toList());
+        if (values.size() > SAFE_SIZE) {
+            List<List<C>> partitionList = Lists.partition(new ArrayList<>(values), SAFE_SIZE);
             String str = IntStream.range(0, partitionList.size()).mapToObj(index -> {
                 String key = columnName + (index + 1);
                 paramMap.put(key, partitionList.get(index));
-                return columnName + " IN (:" + key + ")";
+                return new StringBuilder(columnName).append(" IN (:").append(key).append(")").toString();
             }).collect(Collectors.joining(" OR ", "( ", " )"));
             stringBuilder.append(str);
-        } else if (columnValues.size() > 1) {
-            paramMap.put(columnName, columnValues);
-            stringBuilder.append(columnName + " IN (:" + columnName + ")");
+        } else if (values.size() > 1) {
+            paramMap.put(columnName, values);
+            stringBuilder.append(columnName).append(" IN (:").append(columnName).append(")");
         } else {
-            paramMap.put(columnName, columnValues.iterator().next());
-            stringBuilder.append(columnName + " = :" + columnName);
+            paramMap.put(columnName, values.iterator().next());
+            stringBuilder.append(columnName).append(" = :").append(columnName);
         }
         Optional.ofNullable(orderBy)
                 .filter(e -> e.length > 0)
@@ -78,8 +78,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public int insert(String tableName, Map<String, ?> columnMap) {
         if (ObjectUtils.isNotEmpty(columnMap)) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("INSERT INTO ");
+            StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
             stringBuilder.append(tableName);
             stringBuilder.append(columnMap.keySet().stream().collect(Collectors.joining(" , ", " ( ", " ) ")));
             stringBuilder.append("VALUES");
@@ -97,10 +96,10 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public int update(String tableName, Map<String, ?> columnMap, Collection<String> columns) {
         if (ObjectUtils.isNotEmpty(columnMap)) {
-            Map<String, Object> map = new LinkedCaseInsensitiveMap<>(columnMap.size());
-            map.putAll(columnMap);
             if (ObjectUtils.isNotEmpty(columns)) {
-                Map<String, ?> whereMap = columns.stream().distinct().collect(Collectors.toMap(e -> e, map::remove));
+                Map<String, Object> map = new LinkedCaseInsensitiveMap<>(columnMap.size());
+                map.putAll(columnMap);
+                Map<String, ?> whereMap = columns.stream().map(String::toLowerCase).distinct().collect(Collectors.toMap(e -> e, map::remove));
                 return update(tableName, map, whereMap);
             }
         }
@@ -121,8 +120,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
                 Map<String, Object> setMap = new LinkedHashMap<>();
                 sets.stream().filter(e -> keys.stream().noneMatch(key -> Objects.equals(key, e))).forEach(e -> setMap.put(e, columnMap.get(e)));
                 if (ObjectUtils.isNotEmpty(setMap)) {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    stringBuilder.append("UPDATE ");
+                    StringBuilder stringBuilder = new StringBuilder("UPDATE ");
                     stringBuilder.append(tableName);
                     stringBuilder.append(" SET ");
                     stringBuilder.append(setMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" , ")));
