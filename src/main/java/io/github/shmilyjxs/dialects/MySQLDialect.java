@@ -18,6 +18,6 @@ public class MySQLDialect implements IDialect {
 
     @Override
     public String columnSql(String tableName) {
-        return new StringBuilder("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '").append(tableName).append("'").toString();
+        return "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "'";
     }
 }

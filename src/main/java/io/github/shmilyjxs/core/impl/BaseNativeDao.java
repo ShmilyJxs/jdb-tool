@@ -30,7 +30,7 @@ public abstract class BaseNativeDao implements IDaoContext {
 
     @Override
     public long count(@Language("SQL") final String sql, Object... args) {
-        return scalar(new StringBuilder("SELECT COUNT(*) FROM ( ").append(sql).append(" ) tmp").toString(), Long.class, args);
+        return scalar("SELECT COUNT(*) FROM ( " + sql + " ) tmp", Long.class, args);
     }
 
     @Override

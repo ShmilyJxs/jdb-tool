@@ -50,11 +50,11 @@ public abstract class BaseSqlDao extends BaseNativeDao {
         Map<String, Object> paramMap = new HashMap<>();
         List<C> values = columnValues.stream().distinct().collect(Collectors.toList());
         if (values.size() > SAFE_SIZE) {
-            List<List<C>> partitionList = Lists.partition(new ArrayList<>(values), SAFE_SIZE);
+            List<List<C>> partitionList = Lists.partition(values, SAFE_SIZE);
             String str = IntStream.range(0, partitionList.size()).mapToObj(index -> {
                 String key = columnName + (index + 1);
                 paramMap.put(key, partitionList.get(index));
-                return new StringBuilder(columnName).append(" IN (:").append(key).append(")").toString();
+                return columnName + " IN (:" + key + ")";
             }).collect(Collectors.joining(" OR ", "( ", " )"));
             stringBuilder.append(str);
         } else if (values.size() > 1) {
