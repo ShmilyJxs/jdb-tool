@@ -43,25 +43,27 @@ public abstract class BaseSqlDao extends BaseNativeDao {
         return new AbstractMap.SimpleImmutableEntry<>(stringBuilder.toString(), valueList.toArray());
     }
 
-    private static <C> Map.Entry<String, Map<String, ?>> buildSql(String prefix, String tableName, String columnName, Collection<C> columnValues, String... orderBy) {
+    private static <C> Map.Entry<String, Map<String, Object>> buildSql(String prefix, String tableName, String columnName, Collection<C> columnValues, String... orderBy) {
         StringBuilder stringBuilder = new StringBuilder(prefix);
         stringBuilder.append(tableName);
         stringBuilder.append(" WHERE ");
-        Map<String, Object> paramMap = new HashMap<>();
+        Map<String, Object> paramMap;
         List<C> values = columnValues.stream().distinct().collect(Collectors.toList());
         if (values.size() > SAFE_SIZE) {
             List<List<C>> partitionList = Lists.partition(values, SAFE_SIZE);
+            Map<String, Object> map = new LinkedHashMap<>(partitionList.size());
             String str = IntStream.range(0, partitionList.size()).mapToObj(index -> {
                 String key = columnName + (index + 1);
-                paramMap.put(key, partitionList.get(index));
+                map.put(key, partitionList.get(index));
                 return columnName + " IN (:" + key + ")";
             }).collect(Collectors.joining(" OR ", "( ", " )"));
+            paramMap = map;
             stringBuilder.append(str);
         } else if (values.size() > 1) {
-            paramMap.put(columnName, values);
+            paramMap = Collections.singletonMap(columnName, values);
             stringBuilder.append(columnName).append(" IN (:").append(columnName).append(")");
         } else {
-            paramMap.put(columnName, values.iterator().next());
+            paramMap = Collections.singletonMap(columnName, values.iterator().next());
             stringBuilder.append(columnName).append(" = :").append(columnName);
         }
         Optional.ofNullable(orderBy)
@@ -99,7 +101,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
             if (ObjectUtils.isNotEmpty(columns)) {
                 Map<String, Object> map = new LinkedCaseInsensitiveMap<>(columnMap.size());
                 map.putAll(columnMap);
-                Map<String, ?> whereMap = columns.stream().map(String::toLowerCase).distinct().collect(Collectors.toMap(e -> e, map::remove));
+                Map<String, Object> whereMap = columns.stream().map(String::toLowerCase).distinct().collect(Collectors.toMap(e -> e, map::remove));
                 return update(tableName, map, whereMap);
             }
         }
@@ -150,10 +152,10 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public <C> int batchDelete(String tableName, String columnName, Collection<C> columnValues) {
         if (ObjectUtils.isNotEmpty(columnValues)) {
-            Map.Entry<String, Map<String, ?>> entry = buildSql(DELETE_PREFIX, tableName, columnName, columnValues);
-            String sql = entry.getKey();
-            logger.info(sql);
-            return getNamedJdbcTemplate().update(sql, entry.getValue());
+            Map.Entry<String, Map<String, Object>> entry = buildSql(DELETE_PREFIX, tableName, columnName, columnValues);
+            logger.info("sql = {}", entry.getKey());
+            logger.info("paramMap = {}", entry.getValue());
+            return getNamedJdbcTemplate().update(entry.getKey(), entry.getValue());
         }
         return 0;
     }
@@ -175,10 +177,10 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass, String... orderBy) {
         if (ObjectUtils.isNotEmpty(columnValues)) {
-            Map.Entry<String, Map<String, ?>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, orderBy);
-            String sql = entry.getKey();
-            logger.info(sql);
-            return getNamedJdbcTemplate().query(sql, entry.getValue(), new BeanPropertyRowMapper<>(mappedClass));
+            Map.Entry<String, Map<String, Object>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, orderBy);
+            logger.info("sql = {}", entry.getKey());
+            logger.info("paramMap = {}", entry.getValue());
+            return getNamedJdbcTemplate().query(entry.getKey(), entry.getValue(), new BeanPropertyRowMapper<>(mappedClass));
         }
         return Collections.emptyList();
     }
@@ -212,10 +214,10 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues, String... orderBy) {
         if (ObjectUtils.isNotEmpty(columnValues)) {
-            Map.Entry<String, Map<String, ?>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, orderBy);
-            String sql = entry.getKey();
-            logger.info(sql);
-            return getNamedJdbcTemplate().queryForList(sql, entry.getValue());
+            Map.Entry<String, Map<String, Object>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, orderBy);
+            logger.info("sql = {}", entry.getKey());
+            logger.info("paramMap = {}", entry.getValue());
+            return getNamedJdbcTemplate().queryForList(entry.getKey(), entry.getValue());
         }
         return Collections.emptyList();
     }

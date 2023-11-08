@@ -7,10 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class BaseNativeDao implements IDaoContext {
 
@@ -18,13 +15,15 @@ public abstract class BaseNativeDao implements IDaoContext {
 
     @Override
     public <T> T scalar(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
-        logger.info(sql);
+        logger.info("sql = {}", sql);
+        Optional.ofNullable(args).filter(e -> e.length > 0).map(Arrays::asList).ifPresent(e -> logger.info("args = {}", e));
         return getJdbcTemplate().queryForObject(sql, mappedClass, args);
     }
 
     @Override
     public <T> List<T> scalarList(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
-        logger.info(sql);
+        logger.info("sql = {}", sql);
+        Optional.ofNullable(args).filter(e -> e.length > 0).map(Arrays::asList).ifPresent(e -> logger.info("args = {}", e));
         return getJdbcTemplate().queryForList(sql, mappedClass, args);
     }
 
@@ -40,7 +39,8 @@ public abstract class BaseNativeDao implements IDaoContext {
 
     @Override
     public int nativeUpdate(@Language("SQL") final String sql, Object... args) {
-        logger.info(sql);
+        logger.info("sql = {}", sql);
+        Optional.ofNullable(args).filter(e -> e.length > 0).map(Arrays::asList).ifPresent(e -> logger.info("args = {}", e));
         return getJdbcTemplate().update(sql, args);
     }
 
@@ -52,7 +52,8 @@ public abstract class BaseNativeDao implements IDaoContext {
 
     @Override
     public <T> List<T> selectBeans(@Language("SQL") final String sql, Class<T> mappedClass, Object... args) {
-        logger.info(sql);
+        logger.info("sql = {}", sql);
+        Optional.ofNullable(args).filter(e -> e.length > 0).map(Arrays::asList).ifPresent(e -> logger.info("args = {}", e));
         return getJdbcTemplate().query(sql, new BeanPropertyRowMapper<>(mappedClass), args);
     }
 
@@ -91,7 +92,8 @@ public abstract class BaseNativeDao implements IDaoContext {
 
     @Override
     public List<Map<String, Object>> selectList(@Language("SQL") final String sql, Object... args) {
-        logger.info(sql);
+        logger.info("sql = {}", sql);
+        Optional.ofNullable(args).filter(e -> e.length > 0).map(Arrays::asList).ifPresent(e -> logger.info("args = {}", e));
         return getJdbcTemplate().queryForList(sql, args);
     }
 
