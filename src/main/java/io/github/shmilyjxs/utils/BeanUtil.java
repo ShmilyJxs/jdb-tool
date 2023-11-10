@@ -2,6 +2,7 @@ package io.github.shmilyjxs.utils;
 
 import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.cglib.beans.BeanCopier;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -15,30 +16,16 @@ import java.util.function.Function;
 
 public class BeanUtil {
 
-    public static <T> Map<String, Object> beanToLinkedMap(T bean) {
-        return Optional.ofNullable(bean).map(e -> {
-            BeanMap map = BeanMap.create(e);
-            Map<String, Object> result = new LinkedHashMap<>(map.size());
-            Arrays.stream(e.getClass().getDeclaredFields()).map(Field::getName).forEach(key -> result.put(key, map.get(key)));
-            return result;
-        }).orElse(null);
-    }
-
     public static <T> Map<String, Object> beanToMap(T bean) {
         return Optional.ofNullable(bean).map(BeanMap::create).orElse(null);
     }
 
     public static <T> T mapToBean(Map<String, ?> map, Class<T> type) {
-        if (Objects.isNull(map)) {
-            return null;
-        }
-        try {
-            T bean = type.newInstance();
-            BeanMap.create(bean).putAll(map);
+        return Optional.ofNullable(map).map(e -> {
+            T bean = BeanUtils.instantiateClass(type);
+            BeanMap.create(bean).putAll(e);
             return bean;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        }).orElse(null);
     }
 
     public static Map<String, Object> skipBlank(Map<String, ?> map) {
@@ -116,6 +103,16 @@ public class BeanUtil {
     }
 
     public static <T> Field idFiled(Class<T> clazz) {
-        return Optional.of(clazz).flatMap(e -> Arrays.stream(e.getDeclaredFields()).filter(i -> Objects.nonNull(AnnotationUtils.findAnnotation(i, Id.class))).findAny()).orElseThrow(NullPointerException::new);
+        Optional<Field> optional = Optional.of(clazz).flatMap(e -> Arrays.stream(e.getDeclaredFields()).filter(f -> Objects.nonNull(AnnotationUtils.findAnnotation(f, Id.class))).findAny());
+        if (optional.isPresent()) {
+            return optional.get();
+        } else {
+            Class<?> superclass = clazz.getSuperclass();
+            if (Objects.equals(superclass, Object.class)) {
+                throw new NullPointerException();
+            } else {
+                return idFiled(superclass);
+            }
+        }
     }
 }
