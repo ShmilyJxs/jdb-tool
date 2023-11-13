@@ -69,11 +69,8 @@ public class BeanUtil {
                 .orElse(null);
     }
 
-    public static <F, T> T copy(F from, T to) {
-        return Optional.of(from).flatMap(f -> Optional.of(to).map(t -> {
-            BeanCopier.create(f.getClass(), t.getClass(), false).copy(f, t, null);
-            return t;
-        })).get();
+    public static <F, T> void copy(F from, T to) {
+        Optional.of(from).ifPresent(f -> Optional.of(to).ifPresent(t -> BeanCopier.create(f.getClass(), t.getClass(), false).copy(f, t, null)));
     }
 
     public static <T> Object getFieldValue(T bean, String fieldName) {
