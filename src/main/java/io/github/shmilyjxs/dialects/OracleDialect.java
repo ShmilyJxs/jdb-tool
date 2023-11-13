@@ -11,6 +11,6 @@ public class OracleDialect implements IDialect {
 
     @Override
     public String columnSql(String tableName) {
-        return "SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
+        return "SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' ORDER BY COLUMN_ID";
     }
 }

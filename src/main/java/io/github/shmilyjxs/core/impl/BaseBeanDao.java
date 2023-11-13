@@ -20,11 +20,11 @@ public abstract class BaseBeanDao extends BaseSqlDao {
 
     private static final Map<Class<?>, Triple<String, Map.Entry<Field, String>, Map<String, String>>> CLASS_CACHE = new HashMap<>();
 
-    private <T> Map<String, Object> buildMap(T obj, Map<String, String> convertMap) {
+    private static <T> Map<String, Object> buildMap(T obj, Map<String, String> convertMap) {
         return buildMap(obj, convertMap, true);
     }
 
-    private <T> Map<String, Object> buildMap(T obj, Map<String, String> convertMap, boolean skipBlank) {
+    private static <T> Map<String, Object> buildMap(T obj, Map<String, String> convertMap, boolean skipBlank) {
         Map<String, Object> beanMap = BeanUtil.beanToMap(obj);
         if (skipBlank) {
             beanMap = BeanUtil.skipBlank(beanMap);
@@ -62,7 +62,7 @@ public abstract class BaseBeanDao extends BaseSqlDao {
 
                     Map.Entry<Field, String> entry = new AbstractMap.SimpleImmutableEntry<>(idFiled, Objects.requireNonNull(map.get(idFiled.getName())));
                     Map<String, String> convertMap = new LinkedHashMap<>();
-                    Arrays.stream(BeanUtils.getPropertyDescriptors(clazz)).map(PropertyDescriptor::getName).filter(map::containsKey).forEach(e -> convertMap.put(e, map.get(e)));
+                    Arrays.stream(BeanUtils.getPropertyDescriptors(clazz)).map(PropertyDescriptor::getName).filter(map::containsKey).sorted(Comparator.comparingInt(o -> columnList.indexOf(map.get(o)))).forEach(e -> convertMap.put(e, map.get(e)));
                     triple = Triple.of(tableName, entry, convertMap);
                     CLASS_CACHE.put(clazz, triple);
                 }
