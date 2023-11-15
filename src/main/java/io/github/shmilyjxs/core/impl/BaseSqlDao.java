@@ -32,14 +32,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
             stringBuilder.append(columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND ")));
             valueList = columnMap.values();
         }
-        Optional.ofNullable(orderBy)
-                .filter(e -> e.length > 0)
-                .map(e -> Arrays.stream(e).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
-                .filter(e -> e.size() > 0)
-                .ifPresent(e -> {
-                    stringBuilder.append(" ORDER BY ");
-                    stringBuilder.append(String.join(" , ", e));
-                });
+        orderSql(stringBuilder, orderBy);
         return new AbstractMap.SimpleImmutableEntry<>(stringBuilder.toString(), valueList.toArray());
     }
 
@@ -66,6 +59,11 @@ public abstract class BaseSqlDao extends BaseNativeDao {
             paramMap = Collections.singletonMap(columnName, values.iterator().next());
             stringBuilder.append(columnName).append(" = :").append(columnName);
         }
+        orderSql(stringBuilder, orderBy);
+        return new AbstractMap.SimpleImmutableEntry<>(stringBuilder.toString(), paramMap);
+    }
+
+    private static void orderSql(StringBuilder stringBuilder, String... orderBy) {
         Optional.ofNullable(orderBy)
                 .filter(e -> e.length > 0)
                 .map(e -> Arrays.stream(e).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
@@ -74,7 +72,6 @@ public abstract class BaseSqlDao extends BaseNativeDao {
                     stringBuilder.append(" ORDER BY ");
                     stringBuilder.append(String.join(" , ", e));
                 });
-        return new AbstractMap.SimpleImmutableEntry<>(stringBuilder.toString(), paramMap);
     }
 
     @Override
@@ -198,6 +195,22 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
+    public <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy) {
+        String sql = getDBType().getDialect().downRecursiveSql(tableName, startColumn, joinColumn);
+        StringBuilder stringBuilder = new StringBuilder(sql);
+        orderSql(stringBuilder, orderBy);
+        return selectBeans(stringBuilder.toString(), mappedClass, columnValue);
+    }
+
+    @Override
+    public <T, C> List<T> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy) {
+        String sql = getDBType().getDialect().upRecursiveSql(tableName, startColumn, joinColumn);
+        StringBuilder stringBuilder = new StringBuilder(sql);
+        orderSql(stringBuilder, orderBy);
+        return selectBeans(stringBuilder.toString(), mappedClass, columnValue);
+    }
+
+    @Override
     public <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue) {
         return getMap(tableName, Collections.singletonMap(columnName, columnValue));
     }
@@ -232,5 +245,21 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     public Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy) {
         Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
         return selectPage(entry.getKey(), pageNum, pageSize, entry.getValue());
+    }
+
+    @Override
+    public <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy) {
+        String sql = getDBType().getDialect().downRecursiveSql(tableName, startColumn, joinColumn);
+        StringBuilder stringBuilder = new StringBuilder(sql);
+        orderSql(stringBuilder, orderBy);
+        return selectList(stringBuilder.toString(), columnValue);
+    }
+
+    @Override
+    public <C> List<Map<String, Object>> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy) {
+        String sql = getDBType().getDialect().upRecursiveSql(tableName, startColumn, joinColumn);
+        StringBuilder stringBuilder = new StringBuilder(sql);
+        orderSql(stringBuilder, orderBy);
+        return selectList(stringBuilder.toString(), columnValue);
     }
 }

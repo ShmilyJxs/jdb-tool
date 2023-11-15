@@ -30,6 +30,10 @@ public interface ISqlDao {
 
     <T> Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy);
 
+    <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy);
+
+    <T, C> List<T> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy);
+
     <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue);
 
     Map<String, Object> getMap(String tableName, Map<String, ?> columnMap);
@@ -39,4 +43,8 @@ public interface ISqlDao {
     List<Map<String, Object>> getList(String tableName, Map<String, ?> columnMap, String... orderBy);
 
     Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy);
+
+    <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy);
+
+    <C> List<Map<String, Object>> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy);
 }

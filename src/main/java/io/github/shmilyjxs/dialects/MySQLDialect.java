@@ -20,4 +20,14 @@ public class MySQLDialect implements IDialect {
     public String columnSql(String tableName) {
         return "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' ORDER BY ORDINAL_POSITION";
     }
+
+    @Override
+    public String downRecursiveSql(String tableName, String startColumn, String joinColumn) {
+        return "WITH RECURSIVE cte AS ( SELECT * FROM " + tableName + " WHERE " + startColumn + " = ? UNION ALL SELECT deep.* FROM " + tableName + " deep JOIN cte ON deep." + joinColumn + " = cte." + startColumn + " ) SELECT * FROM cte";
+    }
+
+    @Override
+    public String upRecursiveSql(String tableName, String startColumn, String joinColumn) {
+        return "WITH RECURSIVE cte AS ( SELECT * FROM " + tableName + " WHERE " + startColumn + " = ? UNION ALL SELECT deep.* FROM " + tableName + " deep JOIN cte ON deep." + startColumn + " = cte." + joinColumn + " ) SELECT * FROM cte";
+    }
 }

@@ -13,4 +13,14 @@ public class OracleDialect implements IDialect {
     public String columnSql(String tableName) {
         return "SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' ORDER BY COLUMN_ID";
     }
+
+    @Override
+    public String downRecursiveSql(String tableName, String startColumn, String joinColumn) {
+        return "SELECT * FROM " + tableName + " START WITH " + startColumn + " = ? CONNECT BY PRIOR " + startColumn + " = " + joinColumn;
+    }
+
+    @Override
+    public String upRecursiveSql(String tableName, String startColumn, String joinColumn) {
+        return "SELECT * FROM " + tableName + " START WITH " + startColumn + " = ? CONNECT BY PRIOR " + joinColumn + " = " + startColumn;
+    }
 }
