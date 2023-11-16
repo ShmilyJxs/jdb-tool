@@ -1,5 +1,6 @@
 package io.github.shmilyjxs.core;
 
+import io.github.shmilyjxs.utils.PageResult;
 import org.intellij.lang.annotations.Language;
 
 import java.util.List;
@@ -21,11 +22,11 @@ public interface INativeDao {
 
     <T> List<T> selectBeans(@Language("SQL") final String sql, Class<T> mappedClass, Object... args);
 
-    <T> Map<String, Object> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args);
+    <T> PageResult<T> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args);
 
     Map<String, Object> selectMap(@Language("SQL") final String sql, Object... args);
 
     List<Map<String, Object>> selectList(@Language("SQL") final String sql, Object... args);
 
-    Map<String, Object> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Object... args);
+    PageResult<Map<String, Object>> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Object... args);
 }

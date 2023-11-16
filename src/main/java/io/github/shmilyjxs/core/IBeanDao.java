@@ -1,5 +1,6 @@
 package io.github.shmilyjxs.core;
 
+import io.github.shmilyjxs.utils.PageResult;
 import org.apache.commons.lang3.tuple.Triple;
 
 import java.lang.reflect.Field;
@@ -35,5 +36,5 @@ public interface IBeanDao {
 
     <T> List<T> getBeans(T example, String... orderBy);
 
-    <T> Map<String, Object> getPage(T example, long pageNum, long pageSize, String... orderBy);
+    <T> PageResult<T> getPage(T example, long pageNum, long pageSize, String... orderBy);
 }

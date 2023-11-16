@@ -1,6 +1,7 @@
 package io.github.shmilyjxs.core.impl;
 
 import io.github.shmilyjxs.core.IDaoContext;
+import io.github.shmilyjxs.utils.PageResult;
 import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,30 +59,20 @@ public abstract class BaseNativeDao implements IDaoContext {
     }
 
     @Override
-    public <T> Map<String, Object> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
-        pageNum = Math.max(pageNum, 1L);
-        pageSize = Math.max(pageSize, 0L);
-
+    public <T> PageResult<T> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
         long total = count(sql, args);
         long pages = 0L;
         List<T> records = Collections.emptyList();
         if (total > 0L) {
             if (pageSize > 0L) {
                 pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
-                if (pageNum <= pages) {
+                if (pageNum > 0L && pageNum <= pages) {
                     String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
                     records = selectBeans(pageSql, mappedClass, args);
                 }
             }
         }
-
-        Map<String, Object> result = new HashMap<>(5);
-        result.put("pageNum", pageNum);
-        result.put("pageSize", pageSize);
-        result.put("total", total);
-        result.put("pages", pages);
-        result.put("records", records);
-        return result;
+        return PageResult.of(pageNum, pageSize, total, pages, records);
     }
 
     @Override
@@ -98,29 +89,19 @@ public abstract class BaseNativeDao implements IDaoContext {
     }
 
     @Override
-    public Map<String, Object> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Object... args) {
-        pageNum = Math.max(pageNum, 1L);
-        pageSize = Math.max(pageSize, 0L);
-
+    public PageResult<Map<String, Object>> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Object... args) {
         long total = count(sql, args);
         long pages = 0L;
         List<Map<String, Object>> records = Collections.emptyList();
         if (total > 0L) {
             if (pageSize > 0L) {
                 pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
-                if (pageNum <= pages) {
+                if (pageNum > 0L && pageNum <= pages) {
                     String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
                     records = selectList(pageSql, args);
                 }
             }
         }
-
-        Map<String, Object> result = new HashMap<>(5);
-        result.put("pageNum", pageNum);
-        result.put("pageSize", pageSize);
-        result.put("total", total);
-        result.put("pages", pages);
-        result.put("records", records);
-        return result;
+        return PageResult.of(pageNum, pageSize, total, pages, records);
     }
 }

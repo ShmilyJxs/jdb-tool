@@ -1,6 +1,7 @@
 package io.github.shmilyjxs.core.impl;
 
 import com.google.common.collect.Lists;
+import io.github.shmilyjxs.utils.PageResult;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -189,7 +190,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
-    public <T> Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy) {
+    public <T> PageResult<T> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy) {
         Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
         return selectPage(entry.getKey(), pageNum, pageSize, mappedClass, entry.getValue());
     }
@@ -242,7 +243,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
-    public Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy) {
+    public PageResult<Map<String, Object>> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy) {
         Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
         return selectPage(entry.getKey(), pageNum, pageSize, entry.getValue());
     }

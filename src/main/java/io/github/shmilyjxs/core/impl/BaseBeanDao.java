@@ -1,6 +1,7 @@
 package io.github.shmilyjxs.core.impl;
 
 import io.github.shmilyjxs.utils.BeanUtil;
+import io.github.shmilyjxs.utils.PageResult;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
@@ -13,12 +14,13 @@ import org.springframework.util.ReflectionUtils;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class BaseBeanDao extends BaseSqlDao {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseBeanDao.class);
 
-    private static final Map<Class<?>, Triple<String, Map.Entry<Field, String>, Map<String, String>>> CLASS_CACHE = new HashMap<>();
+    private static final Map<Class<?>, Triple<String, Map.Entry<Field, String>, Map<String, String>>> CLASS_CACHE = new ConcurrentHashMap<>();
 
     private static <T> Map<String, Object> buildMap(T obj, Map<String, String> convertMap) {
         return buildMap(obj, convertMap, true);
@@ -62,7 +64,12 @@ public abstract class BaseBeanDao extends BaseSqlDao {
 
                     Map.Entry<Field, String> entry = new AbstractMap.SimpleImmutableEntry<>(idFiled, Objects.requireNonNull(map.get(idFiled.getName())));
                     Map<String, String> convertMap = new LinkedHashMap<>();
-                    Arrays.stream(BeanUtils.getPropertyDescriptors(clazz)).map(PropertyDescriptor::getName).filter(map::containsKey).sorted(Comparator.comparingInt(o -> columnList.indexOf(map.get(o)))).forEach(e -> convertMap.put(e, map.get(e)));
+                    Arrays.stream(BeanUtils.getPropertyDescriptors(clazz))
+                            .map(PropertyDescriptor::getName)
+                            .filter(map::containsKey)
+                            .map(e -> new AbstractMap.SimpleImmutableEntry<>(e, map.get(e)))
+                            .sorted(Comparator.comparingInt(e -> columnList.indexOf(e.getValue())))
+                            .forEach(e -> convertMap.put(e.getKey(), e.getValue()));
                     triple = Triple.of(tableName, entry, convertMap);
                     CLASS_CACHE.put(clazz, triple);
                 }
@@ -166,8 +173,8 @@ public abstract class BaseBeanDao extends BaseSqlDao {
     }
 
     @Override
-    public <T> Map<String, Object> getPage(T example, long pageNum, long pageSize, String... orderBy) {
+    public <T> PageResult<T> getPage(T example, long pageNum, long pageSize, String... orderBy) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(example);
-        return selectPage(tableInfo.getLeft(), buildMap(example, tableInfo.getRight()), pageNum, pageSize, example.getClass(), orderBy);
+        return selectPage(tableInfo.getLeft(), buildMap(example, tableInfo.getRight()), pageNum, pageSize, (Class<T>) example.getClass(), orderBy);
     }
 }

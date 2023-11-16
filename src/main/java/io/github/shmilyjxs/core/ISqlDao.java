@@ -1,5 +1,8 @@
 package io.github.shmilyjxs.core;
 
+
+import io.github.shmilyjxs.utils.PageResult;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +31,7 @@ public interface ISqlDao {
 
     <T> List<T> getBeans(String tableName, Map<String, ?> columnMap, Class<T> mappedClass, String... orderBy);
 
-    <T> Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy);
+    <T> PageResult<T> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy);
 
     <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy);
 
@@ -42,7 +45,7 @@ public interface ISqlDao {
 
     List<Map<String, Object>> getList(String tableName, Map<String, ?> columnMap, String... orderBy);
 
-    Map<String, Object> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy);
+    PageResult<Map<String, Object>> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy);
 
     <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy);
 
