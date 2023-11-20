@@ -13,7 +13,7 @@
 
     <groupId>io.github.shmilyjxs</groupId>
     <artifactId>jdb-tool</artifactId>
-    <version>1.32</version>
+    <version>1.34</version>
 
     <licenses>
         <license>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>5.3.30</version>
+            <version>5.3.31</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -59,7 +59,7 @@
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>24.0.1</version>
+            <version>24.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -138,7 +138,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

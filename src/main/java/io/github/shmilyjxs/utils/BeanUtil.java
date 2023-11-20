@@ -14,7 +14,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Function;
 
-public class BeanUtil {
+public abstract class BeanUtil {
 
     public static <T> Map<String, Object> beanToMap(T bean) {
         return Optional.ofNullable(bean).map(BeanMap::create).orElse(null);

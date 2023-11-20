@@ -1,6 +1,5 @@
 package io.github.shmilyjxs.core;
 
-
 import io.github.shmilyjxs.utils.PageResult;
 
 import java.util.Collection;
