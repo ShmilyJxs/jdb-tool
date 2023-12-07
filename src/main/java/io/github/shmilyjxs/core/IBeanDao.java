@@ -16,11 +16,19 @@ public interface IBeanDao {
 
     <T> T insert(T obj, boolean skipBlank);
 
+    void batchInsert(Collection<?> objs);
+
     <T> T updateById(T obj, boolean skipBlank);
+
+    void batchUpdate(Collection<?> objs);
 
     <T> T insertOrUpdate(T obj, boolean skipBlank);
 
+    void batchInsertOrUpdate(Collection<?> objs);
+
     <T> int deleteById(T obj);
+
+    void batchDelete(Collection<?> objs);
 
     <T, ID> int delete(ID idValue, Class<T> mappedClass);
 

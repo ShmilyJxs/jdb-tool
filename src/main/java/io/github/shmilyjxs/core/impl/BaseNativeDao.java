@@ -65,7 +65,7 @@ public abstract class BaseNativeDao implements IDaoContext {
         List<T> records = Collections.emptyList();
         if (total > 0L) {
             if (pageSize > 0L) {
-                pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
+                pages = (total / pageSize) + (total % pageSize == 0L ? 0L : 1L);
                 if (pageNum > 0L && pageNum <= pages) {
                     String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
                     records = selectBeans(pageSql, mappedClass, args);
@@ -95,7 +95,7 @@ public abstract class BaseNativeDao implements IDaoContext {
         List<Map<String, Object>> records = Collections.emptyList();
         if (total > 0L) {
             if (pageSize > 0L) {
-                pages = total % pageSize == 0L ? total / pageSize : total / pageSize + 1L;
+                pages = (total / pageSize) + (total % pageSize == 0L ? 0L : 1L);
                 if (pageNum > 0L && pageNum <= pages) {
                     String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
                     records = selectList(pageSql, args);

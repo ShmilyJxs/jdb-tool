@@ -2,6 +2,7 @@ package io.github.shmilyjxs.core.impl;
 
 import io.github.shmilyjxs.utils.BeanUtil;
 import io.github.shmilyjxs.utils.PageResult;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public abstract class BaseBeanDao extends BaseSqlDao {
 
@@ -70,7 +72,7 @@ public abstract class BaseBeanDao extends BaseSqlDao {
                             .map(e -> new AbstractMap.SimpleImmutableEntry<>(e, map.get(e)))
                             .sorted(Comparator.comparingInt(e -> columnList.indexOf(e.getValue())))
                             .forEach(e -> convertMap.put(e.getKey(), e.getValue()));
-                    triple = Triple.of(tableName, entry, convertMap);
+                    triple = Triple.of(tableName, entry, Collections.unmodifiableMap(convertMap));
                     CLASS_CACHE.put(clazz, triple);
                 }
             }
@@ -95,10 +97,60 @@ public abstract class BaseBeanDao extends BaseSqlDao {
     }
 
     @Override
+    public void batchInsert(Collection<?> objs) {
+        objs.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(Object::getClass)).forEach((key, val) -> {
+            Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(key);
+            StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
+            stringBuilder.append(tableInfo.getLeft());
+            stringBuilder.append(tableInfo.getRight().values().stream().collect(Collectors.joining(" , ", " ( ", " ) ")));
+            stringBuilder.append("VALUES");
+            stringBuilder.append(tableInfo.getRight().values().stream().map(e -> "?").collect(Collectors.joining(" , ", " ( ", " ) ")));
+            String sql = stringBuilder.toString();
+            List<Object[]> batchArgs = new ArrayList<>();
+            Field idField = tableInfo.getMiddle().getKey();
+            ReflectionUtils.makeAccessible(idField);
+            val.forEach(obj -> {
+                Object idValue = ReflectionUtils.getField(idField, obj);
+                if (ObjectUtils.isEmpty(idValue)) {
+                    ReflectionUtils.setField(idField, obj, idGenerator());
+                }
+                Map<String, Object> map = buildMap(obj, tableInfo.getRight(), false);
+                batchArgs.add(map.values().toArray());
+            });
+            logger.info("sql = {}", sql);
+            batchArgs.forEach(e -> logger.info("args = {}", Arrays.asList(e)));
+            getJdbcTemplate().batchUpdate(sql, batchArgs);
+        });
+    }
+
+    @Override
     public <T> T updateById(T obj, boolean skipBlank) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(obj);
         update(tableInfo.getLeft(), buildMap(obj, tableInfo.getRight(), skipBlank), tableInfo.getMiddle().getValue());
         return obj;
+    }
+
+    @Override
+    public void batchUpdate(Collection<?> objs) {
+        objs.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(Object::getClass)).forEach((key, val) -> {
+            Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(key);
+            StringBuilder stringBuilder = new StringBuilder("UPDATE ");
+            stringBuilder.append(tableInfo.getLeft());
+            stringBuilder.append(" SET ");
+            stringBuilder.append(tableInfo.getRight().values().stream().filter(e -> ObjectUtils.notEqual(e, tableInfo.getMiddle().getValue())).map(e -> e.concat(" = ?")).collect(Collectors.joining(" , ")));
+            stringBuilder.append(" WHERE ");
+            stringBuilder.append(tableInfo.getMiddle().getValue().concat(" = ?"));
+            String sql = stringBuilder.toString();
+            List<Object[]> batchArgs = new ArrayList<>();
+            val.forEach(obj -> {
+                Map<String, Object> map = buildMap(obj, tableInfo.getRight(), false);
+                Object idValue = map.remove(tableInfo.getMiddle().getValue());
+                batchArgs.add(ArrayUtils.add(map.values().toArray(), idValue));
+            });
+            logger.info("sql = {}", sql);
+            batchArgs.forEach(e -> logger.info("args = {}", Arrays.asList(e)));
+            getJdbcTemplate().batchUpdate(sql, batchArgs);
+        });
     }
 
     @Override
@@ -122,12 +174,48 @@ public abstract class BaseBeanDao extends BaseSqlDao {
     }
 
     @Override
+    public void batchInsertOrUpdate(Collection<?> objs) {
+        List<Object> insertList = new ArrayList<>();
+        List<Object> updateList = new ArrayList<>();
+        objs.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(Object::getClass)).forEach((key, val) -> {
+            Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(key);
+            Field idField = tableInfo.getMiddle().getKey();
+            ReflectionUtils.makeAccessible(idField);
+            List<?> idList = val.stream().map(e -> ReflectionUtils.getField(idField, e)).filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
+            Map<?, List<Map<String, Object>>> idGroup = getList(tableInfo.getLeft(), tableInfo.getMiddle().getValue(), idList).stream().collect(Collectors.groupingBy(e -> e.get(tableInfo.getMiddle().getValue())));
+            val.forEach(obj -> {
+                Object idValue = ReflectionUtils.getField(idField, obj);
+                if (ObjectUtils.isEmpty(idValue)) {
+                    insertList.add(obj);
+                } else if (idGroup.containsKey(idValue)) {
+                    updateList.add(obj);
+                } else {
+                    insertList.add(obj);
+                }
+            });
+        });
+        batchInsert(insertList);
+        batchUpdate(updateList);
+    }
+
+    @Override
     public <T> int deleteById(T obj) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(obj);
         Field idFiled = tableInfo.getMiddle().getKey();
         ReflectionUtils.makeAccessible(idFiled);
         Object idValue = ReflectionUtils.getField(idFiled, obj);
         return delete(tableInfo.getLeft(), tableInfo.getMiddle().getValue(), idValue);
+    }
+
+    @Override
+    public void batchDelete(Collection<?> objs) {
+        objs.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(Object::getClass)).forEach((key, val) -> {
+            Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(key);
+            Field idFiled = tableInfo.getMiddle().getKey();
+            ReflectionUtils.makeAccessible(idFiled);
+            List<?> idValues = val.stream().map(e -> ReflectionUtils.getField(idFiled, e)).collect(Collectors.toList());
+            batchDelete(tableInfo.getLeft(), tableInfo.getMiddle().getValue(), idValues);
+        });
     }
 
     @Override
