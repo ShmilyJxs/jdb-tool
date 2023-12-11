@@ -26,7 +26,7 @@ public class PageResult<T> implements Serializable {
         this.pageSize = pageSize;
         this.total = total;
         this.pages = pages;
-        this.records = Optional.ofNullable(records).orElse(Collections.emptyList());
+        this.records = Optional.ofNullable(records).map(Collections::unmodifiableList).orElse(Collections.emptyList());
     }
 
     public static <T> PageResult<T> of(long pageNum, long pageSize, long total, long pages, List<T> records) {

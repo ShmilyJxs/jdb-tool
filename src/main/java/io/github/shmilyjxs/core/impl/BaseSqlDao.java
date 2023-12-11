@@ -20,6 +20,10 @@ public abstract class BaseSqlDao extends BaseNativeDao {
 
     private static final String SELECT_PREFIX = "SELECT * FROM ";
 
+    private static final String INSERT_PREFIX = "INSERT INTO ";
+
+    private static final String UPDATE_PREFIX = "UPDATE ";
+
     private static final String DELETE_PREFIX = "DELETE FROM ";
 
     private static final int SAFE_SIZE = 1000;
@@ -78,12 +82,39 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     @Override
     public int insert(String tableName, Map<String, ?> columnMap) {
         if (ObjectUtils.isNotEmpty(columnMap)) {
-            StringBuilder stringBuilder = new StringBuilder("INSERT INTO ");
+            StringBuilder stringBuilder = new StringBuilder(INSERT_PREFIX);
             stringBuilder.append(tableName);
             stringBuilder.append(columnMap.keySet().stream().collect(Collectors.joining(" , ", " ( ", " ) ")));
             stringBuilder.append("VALUES");
             stringBuilder.append(columnMap.keySet().stream().map(e -> "?").collect(Collectors.joining(" , ", " ( ", " ) ")));
             return nativeUpdate(stringBuilder.toString(), columnMap.values().toArray());
+        }
+        return 0;
+    }
+
+    @Override
+    public int batchInsert(String tableName, Collection<String> columns, Collection<Map<String, Object>> maps) {
+        if (ObjectUtils.isNotEmpty(columns)) {
+            if (ObjectUtils.isNotEmpty(maps)) {
+                StringBuilder stringBuilder = new StringBuilder(INSERT_PREFIX);
+                stringBuilder.append(tableName);
+                stringBuilder.append(columns.stream().collect(Collectors.joining(" , ", " ( ", " ) ")));
+                stringBuilder.append("VALUES");
+                stringBuilder.append(columns.stream().map(e -> "?").collect(Collectors.joining(" , ", " ( ", " ) ")));
+                String sql = stringBuilder.toString();
+                List<Object[]> batchArgs = maps.stream().map(e -> {
+                    if (e instanceof LinkedCaseInsensitiveMap) {
+                        return e;
+                    } else {
+                        Map<String, Object> map = new LinkedCaseInsensitiveMap<>(e.size());
+                        map.putAll(e);
+                        return map;
+                    }
+                }).map(e -> columns.stream().map(e::get).toArray()).collect(Collectors.toList());
+                logger.info("sql = {}", sql);
+                batchArgs.forEach(e -> logger.info("args = {}", Arrays.asList(e)));
+                return IntStream.of(getJdbcTemplate().batchUpdate(sql, batchArgs)).sum();
+            }
         }
         return 0;
     }
@@ -99,7 +130,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
             if (ObjectUtils.isNotEmpty(columns)) {
                 Map<String, Object> map = new LinkedCaseInsensitiveMap<>(columnMap.size());
                 map.putAll(columnMap);
-                Map<String, Object> whereMap = columns.stream().map(String::toLowerCase).distinct().collect(Collectors.toMap(e -> e, map::remove));
+                Map<String, Object> whereMap = columns.stream().collect(Collectors.toMap(e -> e, map::remove));
                 return update(tableName, map, whereMap);
             }
         }
@@ -120,7 +151,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
                 Map<String, Object> setMap = new LinkedHashMap<>();
                 sets.stream().filter(e -> keys.stream().noneMatch(key -> Objects.equals(key, e))).forEach(e -> setMap.put(e, columnMap.get(e)));
                 if (ObjectUtils.isNotEmpty(setMap)) {
-                    StringBuilder stringBuilder = new StringBuilder("UPDATE ");
+                    StringBuilder stringBuilder = new StringBuilder(UPDATE_PREFIX);
                     stringBuilder.append(tableName);
                     stringBuilder.append(" SET ");
                     stringBuilder.append(setMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" , ")));

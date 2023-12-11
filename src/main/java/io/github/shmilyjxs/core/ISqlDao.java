@@ -10,6 +10,8 @@ public interface ISqlDao {
 
     int insert(String tableName, Map<String, ?> columnMap);
 
+    int batchInsert(String tableName, Collection<String> columns, Collection<Map<String, Object>> maps);
+
     int update(String tableName, Map<String, ?> columnMap, String columnName);
 
     int update(String tableName, Map<String, ?> columnMap, Collection<String> columns);

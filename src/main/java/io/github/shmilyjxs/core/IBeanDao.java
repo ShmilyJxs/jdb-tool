@@ -14,15 +14,15 @@ public interface IBeanDao {
 
     <T> Triple<String, Map.Entry<Field, String>, Map<String, String>> getTableInfo(Class<T> clazz);
 
-    <T> T insert(T obj, boolean skipBlank);
+    <T> int insert(T obj);
 
     void batchInsert(Collection<?> objs);
 
-    <T> T updateById(T obj, boolean skipBlank);
+    <T> int updateById(T obj, boolean skipBlank);
 
-    void batchUpdate(Collection<?> objs);
+    void batchUpdate(Collection<?> objs, boolean skipBlank);
 
-    <T> T insertOrUpdate(T obj, boolean skipBlank);
+    <T> int insertOrUpdate(T obj);
 
     void batchInsertOrUpdate(Collection<?> objs);
 
