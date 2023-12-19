@@ -10,6 +10,8 @@ import org.springframework.util.ReflectionUtils;
 
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.beans.PropertyDescriptor;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Function;
@@ -95,21 +97,39 @@ public abstract class BeanUtil {
         }));
     }
 
-    public static <T> String getTableName(Class<T> clazz) {
-        return Optional.of(clazz).map(e -> AnnotationUtils.findAnnotation(e, Table.class)).map(Table::name).filter(StringUtils::isNotBlank).orElseThrow(NullPointerException::new);
+    public static String getTableName(Class<?> clazz) {
+        String tableName = Optional.ofNullable(clazz).map(e -> AnnotationUtils.findAnnotation(e, Table.class)).map(Table::name).filter(StringUtils::isNotBlank).orElse(null);
+        return Objects.requireNonNull(tableName);
     }
 
-    public static <T> Field idFiled(Class<T> clazz) {
-        Optional<Field> optional = Optional.of(clazz).flatMap(e -> Arrays.stream(e.getDeclaredFields()).filter(f -> Objects.nonNull(AnnotationUtils.findAnnotation(f, Id.class))).findAny());
-        if (optional.isPresent()) {
-            return optional.get();
-        } else {
-            Class<?> superclass = clazz.getSuperclass();
-            if (Objects.equals(superclass, Object.class)) {
-                throw new NullPointerException();
-            } else {
-                return idFiled(superclass);
-            }
+    public static Field idFiled(Class<?> clazz) {
+        Field idFiled = Optional.ofNullable(clazz).map(e -> getFiled(e, Id.class)).orElseGet(() -> findFiled(clazz, Id.class));
+        return Objects.requireNonNull(idFiled);
+    }
+
+    private static Field getFiled(Class<?> clazz, Class<? extends Annotation> annotationType) {
+        if (Objects.equals(clazz, Object.class)) {
+            return null;
         }
+        return Optional.ofNullable(clazz)
+                .map(BeanUtils::getPropertyDescriptors)
+                .flatMap(e -> Arrays.stream(e).filter(pd -> Objects.nonNull(AnnotationUtils.findAnnotation(pd.getReadMethod(), annotationType))).map(PropertyDescriptor::getName).findAny())
+                .map(e -> ReflectionUtils.findField(clazz, e))
+                .orElse(null);
+    }
+
+    private static Field findFiled(Class<?> clazz, Class<? extends Annotation> annotationType) {
+        if (Objects.equals(clazz, Object.class)) {
+            return null;
+        }
+        return Optional.ofNullable(clazz)
+                .flatMap(e -> Arrays.stream(e.getDeclaredFields())
+                        .filter(field -> Objects.nonNull(AnnotationUtils.findAnnotation(field, annotationType)))
+                        .findAny()
+                ).orElseGet(() -> Optional.ofNullable(clazz)
+                        .map(Class::getSuperclass)
+                        .map(e -> findFiled(e, annotationType))
+                        .orElse(null)
+                );
     }
 }
