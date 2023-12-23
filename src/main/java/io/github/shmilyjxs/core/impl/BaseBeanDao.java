@@ -136,21 +136,23 @@ public abstract class BaseBeanDao extends BaseSqlDao {
             List<Map<String, Object>> maps = val.stream().map(e -> buildMap(e, tableInfo.getRight(), skipBlank)).collect(Collectors.toList());
             if (skipBlank) {
                 List<?> idList = maps.stream().map(e -> e.get(idColumn)).collect(Collectors.toList());
-                Map<?, List<Map<String, Object>>> idGroup = getList(tableInfo.getLeft(), idColumn, idList).stream().collect(Collectors.groupingBy(e -> e.get(idColumn)));
-                maps.forEach(map -> {
-                    Object idValue = map.get(idColumn);
-                    Map<String, Object> dbMap = idGroup.get(idValue).get(0);
-                    dbMap.putAll(map);
-                    Object[] objects = tableInfo.getRight().values().stream().filter(e -> ObjectUtils.notEqual(e, idColumn)).map(dbMap::get).toArray();
-                    batchArgs.add(ArrayUtils.add(objects, idValue));
-                });
-            } else {
-                maps.forEach(map -> {
-                    Object idValue = map.get(idColumn);
-                    Object[] objects = tableInfo.getRight().values().stream().filter(e -> ObjectUtils.notEqual(e, idColumn)).map(map::get).toArray();
-                    batchArgs.add(ArrayUtils.add(objects, idValue));
-                });
+                Map<?, Map<String, Object>> idGroup = getList(tableInfo.getLeft(), idColumn, idList)
+                        .stream().collect(Collectors.groupingBy(e -> e.get(idColumn)))
+                        .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get(0)));
+                maps = maps.stream().map(e -> {
+                    Object idValue = e.get(idColumn);
+                    Map<String, Object> dbMap = idGroup.get(idValue);
+                    Map<String, Object> mergeMap = new LinkedCaseInsensitiveMap<>();
+                    mergeMap.putAll(dbMap);
+                    mergeMap.putAll(e);
+                    return mergeMap;
+                }).collect(Collectors.toList());
             }
+            maps.forEach(map -> {
+                Object idValue = map.get(idColumn);
+                Object[] objects = tableInfo.getRight().values().stream().filter(e -> ObjectUtils.notEqual(e, idColumn)).map(map::get).toArray();
+                batchArgs.add(ArrayUtils.add(objects, idValue));
+            });
             logger.info("sql = {}", sql);
             batchArgs.forEach(e -> logger.info("args = {}", Arrays.asList(e)));
             getJdbcTemplate().batchUpdate(sql, batchArgs);
