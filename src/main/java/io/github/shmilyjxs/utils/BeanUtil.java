@@ -108,9 +108,6 @@ public abstract class BeanUtil {
     }
 
     private static Field getFiled(Class<?> clazz, Class<? extends Annotation> annotationType) {
-        if (Objects.equals(clazz, Object.class)) {
-            return null;
-        }
         return Optional.ofNullable(clazz)
                 .map(BeanUtils::getPropertyDescriptors)
                 .flatMap(e -> Arrays.stream(e).filter(pd -> Objects.nonNull(AnnotationUtils.findAnnotation(pd.getReadMethod(), annotationType))).map(PropertyDescriptor::getName).findAny())
@@ -125,11 +122,10 @@ public abstract class BeanUtil {
         return Optional.ofNullable(clazz)
                 .flatMap(e -> Arrays.stream(e.getDeclaredFields())
                         .filter(field -> Objects.nonNull(AnnotationUtils.findAnnotation(field, annotationType)))
-                        .findAny()
-                ).orElseGet(() -> Optional.ofNullable(clazz)
+                        .findAny())
+                .orElseGet(() -> Optional.ofNullable(clazz)
                         .map(Class::getSuperclass)
                         .map(e -> findFiled(e, annotationType))
-                        .orElse(null)
-                );
+                        .orElse(null));
     }
 }
