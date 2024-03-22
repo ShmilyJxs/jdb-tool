@@ -61,18 +61,13 @@ public abstract class BaseNativeDao implements IDaoContext {
     @Override
     public <T> PageResult<T> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Class<T> mappedClass, Object... args) {
         long total = count(sql, args);
-        long pages = 0L;
         List<T> records = Collections.emptyList();
-        if (total > 0L) {
-            if (pageSize > 0L) {
-                pages = (total / pageSize) + (total % pageSize == 0L ? 0L : 1L);
-                if (pageNum > 0L && pageNum <= pages) {
-                    String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
-                    records = selectBeans(pageSql, mappedClass, args);
-                }
-            }
+        long pages = PageResult.pages(pageSize, total);
+        if (pageNum > 0L && pageNum <= pages) {
+            String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
+            records = selectBeans(pageSql, mappedClass, args);
         }
-        return PageResult.of(pageNum, pageSize, total, pages, records);
+        return PageResult.of(pageNum, pageSize, total, records);
     }
 
     @Override
@@ -91,17 +86,12 @@ public abstract class BaseNativeDao implements IDaoContext {
     @Override
     public PageResult<Map<String, Object>> selectPage(@Language("SQL") final String sql, long pageNum, long pageSize, Object... args) {
         long total = count(sql, args);
-        long pages = 0L;
         List<Map<String, Object>> records = Collections.emptyList();
-        if (total > 0L) {
-            if (pageSize > 0L) {
-                pages = (total / pageSize) + (total % pageSize == 0L ? 0L : 1L);
-                if (pageNum > 0L && pageNum <= pages) {
-                    String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
-                    records = selectList(pageSql, args);
-                }
-            }
+        long pages = PageResult.pages(pageSize, total);
+        if (pageNum > 0L && pageNum <= pages) {
+            String pageSql = getDBType().getDialect().pageSql(sql, (pageNum - 1L) * pageSize, pageSize);
+            records = selectList(pageSql, args);
         }
-        return PageResult.of(pageNum, pageSize, total, pages, records);
+        return PageResult.of(pageNum, pageSize, total, records);
     }
 }

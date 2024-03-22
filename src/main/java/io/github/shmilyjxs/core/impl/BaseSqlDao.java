@@ -28,7 +28,7 @@ public abstract class BaseSqlDao extends BaseNativeDao {
 
     private static final int SAFE_SIZE = 1000;
 
-    private static Map.Entry<String, Object[]> buildSql(String prefix, String tableName, Map<String, ?> columnMap, String... orderBy) {
+    private static Map.Entry<String, Object[]> buildSql(String prefix, String tableName, Map<String, ?> columnMap, String... lastSql) {
         Collection<?> valueList = Collections.emptyList();
         StringBuilder stringBuilder = new StringBuilder(prefix);
         stringBuilder.append(tableName);
@@ -37,11 +37,11 @@ public abstract class BaseSqlDao extends BaseNativeDao {
             stringBuilder.append(columnMap.keySet().stream().map(e -> e.concat(" = ?")).collect(Collectors.joining(" AND ")));
             valueList = columnMap.values();
         }
-        orderSql(stringBuilder, orderBy);
+        lastSql(stringBuilder, lastSql);
         return new AbstractMap.SimpleImmutableEntry<>(stringBuilder.toString(), valueList.toArray());
     }
 
-    private static <C> Map.Entry<String, Map<String, Object>> buildSql(String prefix, String tableName, String columnName, Collection<C> columnValues, String... orderBy) {
+    private static <C> Map.Entry<String, Map<String, Object>> buildSql(String prefix, String tableName, String columnName, Collection<C> columnValues, String... lastSql) {
         StringBuilder stringBuilder = new StringBuilder(prefix);
         stringBuilder.append(tableName);
         stringBuilder.append(" WHERE ");
@@ -64,18 +64,18 @@ public abstract class BaseSqlDao extends BaseNativeDao {
             paramMap = Collections.singletonMap(columnName, values.iterator().next());
             stringBuilder.append(columnName).append(" = :").append(columnName);
         }
-        orderSql(stringBuilder, orderBy);
+        lastSql(stringBuilder, lastSql);
         return new AbstractMap.SimpleImmutableEntry<>(stringBuilder.toString(), paramMap);
     }
 
-    private static void orderSql(StringBuilder stringBuilder, String... orderBy) {
-        Optional.ofNullable(orderBy)
+    private static void lastSql(StringBuilder stringBuilder, String... lastSql) {
+        Optional.ofNullable(lastSql)
                 .filter(e -> e.length > 0)
                 .map(e -> Arrays.stream(e).filter(StringUtils::isNotBlank).collect(Collectors.toList()))
                 .filter(e -> e.size() > 0)
                 .ifPresent(e -> {
-                    stringBuilder.append(" ORDER BY ");
-                    stringBuilder.append(String.join(" , ", e));
+                    stringBuilder.append(" ");
+                    stringBuilder.append(String.join(" ", e));
                 });
     }
 
@@ -204,9 +204,9 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
-    public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass, String... orderBy) {
+    public <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass, String... lastSql) {
         if (ObjectUtils.isNotEmpty(columnValues)) {
-            Map.Entry<String, Map<String, Object>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, orderBy);
+            Map.Entry<String, Map<String, Object>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, lastSql);
             logger.info("sql = {}", entry.getKey());
             logger.info("paramMap = {}", entry.getValue());
             return getNamedJdbcTemplate().query(entry.getKey(), entry.getValue(), new BeanPropertyRowMapper<>(mappedClass));
@@ -215,30 +215,30 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
-    public <T> List<T> getBeans(String tableName, Map<String, ?> columnMap, Class<T> mappedClass, String... orderBy) {
-        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
+    public <T> List<T> getBeans(String tableName, Map<String, ?> columnMap, Class<T> mappedClass, String... lastSql) {
+        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, lastSql);
         return selectBeans(entry.getKey(), mappedClass, entry.getValue());
     }
 
     @Override
-    public <T> PageResult<T> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy) {
-        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
+    public <T> PageResult<T> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... lastSql) {
+        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, lastSql);
         return selectPage(entry.getKey(), pageNum, pageSize, mappedClass, entry.getValue());
     }
 
     @Override
-    public <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy) {
+    public <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... lastSql) {
         String sql = getDBType().getDialect().downRecursiveSql(tableName, startColumn, joinColumn);
         StringBuilder stringBuilder = new StringBuilder(sql);
-        orderSql(stringBuilder, orderBy);
+        lastSql(stringBuilder, lastSql);
         return selectBeans(stringBuilder.toString(), mappedClass, columnValue);
     }
 
     @Override
-    public <T, C> List<T> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy) {
+    public <T, C> List<T> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... lastSql) {
         String sql = getDBType().getDialect().upRecursiveSql(tableName, startColumn, joinColumn);
         StringBuilder stringBuilder = new StringBuilder(sql);
-        orderSql(stringBuilder, orderBy);
+        lastSql(stringBuilder, lastSql);
         return selectBeans(stringBuilder.toString(), mappedClass, columnValue);
     }
 
@@ -257,9 +257,9 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
-    public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues, String... orderBy) {
+    public <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues, String... lastSql) {
         if (ObjectUtils.isNotEmpty(columnValues)) {
-            Map.Entry<String, Map<String, Object>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, orderBy);
+            Map.Entry<String, Map<String, Object>> entry = buildSql(SELECT_PREFIX, tableName, columnName, columnValues, lastSql);
             logger.info("sql = {}", entry.getKey());
             logger.info("paramMap = {}", entry.getValue());
             return getNamedJdbcTemplate().queryForList(entry.getKey(), entry.getValue());
@@ -268,30 +268,30 @@ public abstract class BaseSqlDao extends BaseNativeDao {
     }
 
     @Override
-    public List<Map<String, Object>> getList(String tableName, Map<String, ?> columnMap, String... orderBy) {
-        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
+    public List<Map<String, Object>> getList(String tableName, Map<String, ?> columnMap, String... lastSql) {
+        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, lastSql);
         return selectList(entry.getKey(), entry.getValue());
     }
 
     @Override
-    public PageResult<Map<String, Object>> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy) {
-        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, orderBy);
+    public PageResult<Map<String, Object>> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... lastSql) {
+        Map.Entry<String, Object[]> entry = buildSql(SELECT_PREFIX, tableName, columnMap, lastSql);
         return selectPage(entry.getKey(), pageNum, pageSize, entry.getValue());
     }
 
     @Override
-    public <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy) {
+    public <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... lastSql) {
         String sql = getDBType().getDialect().downRecursiveSql(tableName, startColumn, joinColumn);
         StringBuilder stringBuilder = new StringBuilder(sql);
-        orderSql(stringBuilder, orderBy);
+        lastSql(stringBuilder, lastSql);
         return selectList(stringBuilder.toString(), columnValue);
     }
 
     @Override
-    public <C> List<Map<String, Object>> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy) {
+    public <C> List<Map<String, Object>> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... lastSql) {
         String sql = getDBType().getDialect().upRecursiveSql(tableName, startColumn, joinColumn);
         StringBuilder stringBuilder = new StringBuilder(sql);
-        orderSql(stringBuilder, orderBy);
+        lastSql(stringBuilder, lastSql);
         return selectList(stringBuilder.toString(), columnValue);
     }
 }

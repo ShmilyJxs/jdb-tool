@@ -36,13 +36,13 @@ public interface IBeanDao {
 
     <T, ID> T getBean(ID idValue, Class<T> mappedClass);
 
-    <T, ID> List<T> getBeans(Collection<ID> idValues, Class<T> mappedClass, String... orderBy);
+    <T, ID> List<T> getBeans(Collection<ID> idValues, Class<T> mappedClass, String... lastSql);
 
     <T> int delete(T example);
 
     <T> T getBean(T example);
 
-    <T> List<T> getBeans(T example, String... orderBy);
+    <T> List<T> getBeans(T example, String... lastSql);
 
-    <T> PageResult<T> getPage(T example, long pageNum, long pageSize, String... orderBy);
+    <T> PageResult<T> getPage(T example, long pageNum, long pageSize, String... lastSql);
 }

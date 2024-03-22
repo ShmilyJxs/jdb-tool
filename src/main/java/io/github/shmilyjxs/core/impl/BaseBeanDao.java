@@ -242,9 +242,9 @@ public abstract class BaseBeanDao extends BaseSqlDao {
     }
 
     @Override
-    public <T, ID> List<T> getBeans(Collection<ID> idValues, Class<T> mappedClass, String... orderBy) {
+    public <T, ID> List<T> getBeans(Collection<ID> idValues, Class<T> mappedClass, String... lastSql) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(mappedClass);
-        return getBeans(tableInfo.getLeft(), tableInfo.getMiddle().getValue(), idValues, mappedClass, orderBy);
+        return getBeans(tableInfo.getLeft(), tableInfo.getMiddle().getValue(), idValues, mappedClass, lastSql);
     }
 
     @Override
@@ -260,14 +260,14 @@ public abstract class BaseBeanDao extends BaseSqlDao {
     }
 
     @Override
-    public <T> List<T> getBeans(T example, String... orderBy) {
+    public <T> List<T> getBeans(T example, String... lastSql) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(example);
-        return getBeans(tableInfo.getLeft(), buildMap(example, tableInfo.getRight()), (Class<T>) example.getClass(), orderBy);
+        return getBeans(tableInfo.getLeft(), buildMap(example, tableInfo.getRight()), (Class<T>) example.getClass(), lastSql);
     }
 
     @Override
-    public <T> PageResult<T> getPage(T example, long pageNum, long pageSize, String... orderBy) {
+    public <T> PageResult<T> getPage(T example, long pageNum, long pageSize, String... lastSql) {
         Triple<String, Map.Entry<Field, String>, Map<String, String>> tableInfo = getTableInfo(example);
-        return selectPage(tableInfo.getLeft(), buildMap(example, tableInfo.getRight()), pageNum, pageSize, (Class<T>) example.getClass(), orderBy);
+        return selectPage(tableInfo.getLeft(), buildMap(example, tableInfo.getRight()), pageNum, pageSize, (Class<T>) example.getClass(), lastSql);
     }
 }

@@ -28,27 +28,27 @@ public interface ISqlDao {
 
     <T> T getBean(String tableName, Map<String, ?> columnMap, Class<T> mappedClass);
 
-    <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass, String... orderBy);
+    <T, C> List<T> getBeans(String tableName, String columnName, Collection<C> columnValues, Class<T> mappedClass, String... lastSql);
 
-    <T> List<T> getBeans(String tableName, Map<String, ?> columnMap, Class<T> mappedClass, String... orderBy);
+    <T> List<T> getBeans(String tableName, Map<String, ?> columnMap, Class<T> mappedClass, String... lastSql);
 
-    <T> PageResult<T> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... orderBy);
+    <T> PageResult<T> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, Class<T> mappedClass, String... lastSql);
 
-    <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy);
+    <T, C> List<T> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... lastSql);
 
-    <T, C> List<T> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... orderBy);
+    <T, C> List<T> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, Class<T> mappedClass, String... lastSql);
 
     <C> Map<String, Object> getMap(String tableName, String columnName, C columnValue);
 
     Map<String, Object> getMap(String tableName, Map<String, ?> columnMap);
 
-    <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues, String... orderBy);
+    <C> List<Map<String, Object>> getList(String tableName, String columnName, Collection<C> columnValues, String... lastSql);
 
-    List<Map<String, Object>> getList(String tableName, Map<String, ?> columnMap, String... orderBy);
+    List<Map<String, Object>> getList(String tableName, Map<String, ?> columnMap, String... lastSql);
 
-    PageResult<Map<String, Object>> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... orderBy);
+    PageResult<Map<String, Object>> selectPage(String tableName, Map<String, ?> columnMap, long pageNum, long pageSize, String... lastSql);
 
-    <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy);
+    <C> List<Map<String, Object>> downRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... lastSql);
 
-    <C> List<Map<String, Object>> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... orderBy);
+    <C> List<Map<String, Object>> upRecursiveSql(String tableName, String startColumn, C columnValue, String joinColumn, String... lastSql);
 }
